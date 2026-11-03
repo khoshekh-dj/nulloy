@@ -1,5 +1,27 @@
 # Nulloy Music Player
 
+## What's new in this fork
+
+This fork adds the features below to [Nulloy](https://github.com/nulloy/nulloy). A macOS build is available in the **[latest release](https://github.com/nmarchini/nulloy/releases/latest)** (Apple Silicon only).
+
+### RGB waveform
+The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. Turn it on in Preferences → *Color waveform by frequency*.
+
+![RGB waveform](docs/screenshots/rgb-waveform.png)
+
+### Playlist columns
+The playlist can show Artist, Title, Album, BPM and Duration from your tags, in resizable columns. Turn it on in Preferences → *Show playlist as columns*.
+
+![Playlist columns](docs/screenshots/playlist-columns.png)
+
+### Also
+- **Mac media keys and Now Playing**: F7, F8 and F9, headphone buttons and Control Center can play, pause and skip tracks.
+- **BPM from tags**: add `{%M BPM}` to a waveform section in Preferences.
+- **Crash fix**: blank global shortcuts were registered as the "A" key system-wide, which made typing "a" pop up the player and could crash the app.
+- **Self-contained macOS packaging**: `scripts/package-mac.sh` builds a standalone `.app` and `.dmg` (see [macOS packaging](#macos-packaging) below).
+
+---
+
 ![Screenshot](http://nulloy.com/files/screen.png)
 
 More screenshots: https://nulloy.com/screenshots/
@@ -122,6 +144,32 @@ cd nulloy.git
 make
 open nulloy.app
 ```
+
+On Apple Silicon, Homebrew installs Qt 5 as `qt@5` under `/opt/homebrew`. Use these steps instead:
+
+```sh
+brew install qt@5 gstreamer taglib imagemagick librsvg
+export PATH="$(brew --prefix qt@5)/bin:$PATH"
+./configure
+make
+```
+
+### macOS packaging
+
+To build a standalone `Nulloy.app` and `Nulloy.dmg` that run without Homebrew, start from a Homebrew build as above:
+
+```sh
+scripts/package-mac.sh "$PWD/nulloy.app" "$PWD/dist/Nulloy"
+# -> dist/Nulloy.dmg
+```
+
+The script:
+- bundles Qt and an audio-only set of GStreamer plugins
+- strips local settings and playlists
+- checks that nothing still depends on Homebrew
+- ad-hoc signs the app
+
+The result is not notarized, so on first launch right-click the app and choose **Open**. It runs on the same CPU architecture as the Homebrew it was built from.
 
 ### Xcode
 
