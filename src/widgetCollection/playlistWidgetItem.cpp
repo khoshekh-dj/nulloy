@@ -15,6 +15,7 @@
 
 #include "playlistWidgetItem.h"
 
+#include <QApplication>
 #include <QFileInfo>
 #include <QPainter>
 
@@ -142,5 +143,39 @@ void NPlaylistWidgetItemDelegate::paint(QPainter *painter, const QStyleOptionVie
 
     // bold font set via Qt::FontRole
 
-    QStyledItemDelegate::paint(painter, opt, index);
+    if (!playlistWidget || !playlistWidget->columnsMode()) {
+        QStyledItemDelegate::paint(painter, opt, index);
+        return;
+    }
+
+    // columns mode: background/selection/focus as usual, without text...
+    initStyleOption(&opt, index);
+    QStyleOptionViewItem bg = opt;
+    bg.text.clear();
+    const QWidget *widget = opt.widget;
+    QStyle *style = widget ? widget->style() : QApplication::style();
+    style->drawControl(QStyle::CE_ItemViewItem, &bg, painter, widget);
+
+    // ...then each column's text clipped to its header section
+    QStringList columns = index.data(N::ColumnsRole).toStringList();
+    QString trackIndex = QString::number(index.data(N::TrackIndexRole).toInt() + 1);
+    QPalette::ColorRole role = (opt.state & QStyle::State_Selected) ? QPalette::HighlightedText
+                                                                     : QPalette::Text;
+    painter->save();
+    painter->setFont(opt.font);
+    painter->setPen(opt.palette.color(QPalette::Active, role));
+    const int padding = 4;
+    for (int i = 0; i < playlistWidget->columnCount() && i < columns.size(); ++i) {
+        QRect cell(opt.rect.left() + playlistWidget->columnX(i), opt.rect.top(),
+                   playlistWidget->columnWidth(i), opt.rect.height());
+        QRect textRect = cell.adjusted(padding, 0, -padding, 0);
+        if (textRect.width() <= 0) {
+            continue;
+        }
+        QString text = QString(columns.at(i)).replace("%i", trackIndex);
+        text = opt.fontMetrics.elidedText(text, Qt::ElideRight, textRect.width());
+        painter->setClipRect(cell);
+        painter->drawText(textRect, playlistWidget->columnAlignment(i) | Qt::AlignVCenter, text);
+    }
+    painter->restore();
 }

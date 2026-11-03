@@ -27,6 +27,8 @@ class NPlaylistWidgetItem;
 class NTrackInfoReader;
 class NPlaybackEngineInterface;
 class QContextMenuEvent;
+class QHeaderView;
+class QStandardItemModel;
 class QDropEvent;
 class QMenu;
 class QString;
@@ -49,10 +51,23 @@ private:
     QTimer *m_processVisibleItemsTimer;
     bool m_repeatMode;
 
+    // columns mode >>
+    bool m_columnsMode;
+    QHeaderView *m_header;
+    QStandardItemModel *m_headerModel;
+    QStringList m_columnFormats;
+    QList<Qt::Alignment> m_columnAlignments;
+    void loadColumns();
+    void updateHeaderGeometry();
+    void updateHeaderStyle();
+    void saveColumnWidths();
+    // << columns mode
+
     void addItem(NPlaylistWidgetItem *item);
     void paintEvent(QPaintEvent *event);
     void contextMenuEvent(QContextMenuEvent *event);
     void resizeEvent(QResizeEvent *event);
+    void changeEvent(QEvent *event);
     bool refreshItemData(NPlaylistWidgetItem *item, QString titleFormat, bool force = false);
     NPlaylistWidgetItem *nextItem(NPlaylistWidgetItem *) const;
     NPlaylistWidgetItem *prevItem(NPlaylistWidgetItem *item) const;
@@ -86,7 +101,14 @@ public:
 
     void setTrackInfoReader(NTrackInfoReader *reader);
 
+    bool columnsMode() const { return m_columnsMode; }
+    int columnCount() const;
+    int columnX(int column) const;
+    int columnWidth(int column) const;
+    Qt::Alignment columnAlignment(int column) const;
+
 public slots:
+    void setColumnsMode(bool enable);
     void playRow(int row);
     void playItem(NPlaylistWidgetItem *item);
     void playNextItem();

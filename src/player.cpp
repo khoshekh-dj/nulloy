@@ -502,6 +502,7 @@ void NPlayer::applySettings()
     m_trackInfoWidget->loadSettings();
     m_waveformSlider->setRgbMode(m_settings->value("WaveformRgb").toBool());
     m_trackInfoWidget->updateFileLabels(m_playbackEngine->currentMedia());
+    m_playlistWidget->setColumnsMode(m_settings->value("PlaylistColumns").toBool());
     m_playlistWidget->processVisibleItems();
     m_actionManager->saveSettings();
 }

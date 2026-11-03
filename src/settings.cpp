@@ -90,6 +90,14 @@ NSettings::NSettings(QObject *parent)
     }
 
     initValue("PlaylistTrackInfo", "%F{ (%d)}");
+    initValue("PlaylistColumns", false);
+    // one entry per column: "Header|track info format[|r]" ("r" = right-aligned)
+    initValue("PlaylistColumnsFormat", QStringList() << "Artist|%a"
+                                                     << "Title|{%t|%F}"
+                                                     << "Album|%A"
+                                                     << "BPM|%M|r"
+                                                     << "Duration|%d|r");
+    initValue("PlaylistColumnWidths", QStringList());
     initValue("WindowTitleTrackInfo",
               "{\"%a - %t\" — |\"%F\" — }" + QCoreApplication::applicationName() + " %v");
     initValue("EncodingTrackInfo", "UTF-8");
