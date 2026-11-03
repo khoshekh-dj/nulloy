@@ -17,8 +17,11 @@
 
 #include <QContextMenuEvent>
 #include <QDrag>
+#include <QElapsedTimer>
+#include <QHeaderView>
 #include <QMap>
 #include <QScrollBar>
+#include <QStandardItemModel>
 
 #include "action.h"
 #include "playbackEngineInterface.h"
@@ -80,6 +83,153 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     });
     connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this,
             SLOT(startProcessVisibleItemsTimer()));
+
+    // columns mode: a standalone header above the viewport, rows are drawn
+    // column by column by NPlaylistWidgetItemDelegate
+    m_columnsMode = false;
+    m_headerModel = new QStandardItemModel(this);
+    m_header = new QHeaderView(Qt::Horizontal, this);
+    m_header->setModel(m_headerModel);
+    m_header->setSectionsMovable(false);
+    m_header->setSectionsClickable(false);
+    m_header->setHighlightSections(false);
+    m_header->setStretchLastSection(true);
+    m_header->setSectionResizeMode(QHeaderView::Interactive);
+    m_header->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_header->hide();
+    connect(m_header, &QHeaderView::sectionResized, [this]() {
+        viewport()->update();
+        saveColumnWidths();
+    });
+    setColumnsMode(NSettings::instance()->value("PlaylistColumns").toBool());
+}
+
+void NPlaylistWidget::loadColumns()
+{
+    m_columnFormats.clear();
+    m_columnAlignments.clear();
+    QStringList headers;
+    for (const QString &spec : NSettings::instance()->value("PlaylistColumnsFormat").toStringList()) {
+        // "Header|format[|r]"; the format itself may contain '|' (e.g. "{%t|%F}")
+        QString header = spec.section('|', 0, 0);
+        QString format = spec.section('|', 1);
+        Qt::Alignment align = Qt::AlignLeft;
+        if (format.endsWith("|r")) {
+            format.chop(2);
+            align = Qt::AlignRight;
+        }
+        headers << header;
+        m_columnFormats << format;
+        m_columnAlignments << align;
+    }
+
+    m_headerModel->clear();
+    m_headerModel->setColumnCount(headers.size());
+    m_headerModel->setHorizontalHeaderLabels(headers);
+    for (int i = 0; i < headers.size(); ++i) {
+        m_headerModel->setHeaderData(i, Qt::Horizontal,
+                                     QVariant::fromValue(int(m_columnAlignments[i] | Qt::AlignVCenter)),
+                                     Qt::TextAlignmentRole);
+    }
+
+    // restore widths, or split the available width evenly
+    QStringList widths = NSettings::instance()->value("PlaylistColumnWidths").toStringList();
+    int fallback = qMax(40, viewport()->width() / qMax(1, headers.size()));
+    for (int i = 0; i < headers.size(); ++i) {
+        int w = (i < widths.size()) ? widths.at(i).toInt() : 0;
+        m_header->resizeSection(i, w > 0 ? w : fallback);
+    }
+}
+
+void NPlaylistWidget::saveColumnWidths()
+{
+    if (!m_columnsMode) {
+        return;
+    }
+    QStringList widths;
+    for (int i = 0; i < m_header->count(); ++i) {
+        widths << QString::number(m_header->sectionSize(i));
+    }
+    NSettings::instance()->setValue("PlaylistColumnWidths", widths);
+}
+
+void NPlaylistWidget::setColumnsMode(bool enable)
+{
+    if (enable == m_columnsMode && (!enable || !m_columnFormats.isEmpty())) {
+        return; // unchanged: keep cached column texts
+    }
+    m_columnsMode = enable;
+    if (enable) {
+        loadColumns();
+        updateHeaderStyle();
+        int h = m_header->sizeHint().height();
+        setViewportMargins(0, h, 0, 0);
+        m_header->show();
+        updateHeaderGeometry();
+    } else {
+        m_header->hide();
+        setViewportMargins(0, 0, 0, 0);
+    }
+
+    // drop cached column texts so visible rows recompute them
+    for (int i = 0; i < count(); ++i) {
+        itemAtRow(i)->setData(N::ColumnsRole, QVariant());
+    }
+    startProcessVisibleItemsTimer(); // fills rows in incrementally
+    viewport()->update();
+}
+
+void NPlaylistWidget::updateHeaderGeometry()
+{
+    if (!m_columnsMode) {
+        return;
+    }
+    QRect vg = viewport()->geometry();
+    int h = m_header->sizeHint().height();
+    m_header->setGeometry(vg.left(), vg.top() - h, vg.width(), h);
+}
+
+void NPlaylistWidget::updateHeaderStyle()
+{
+    // follow the skin: use the playlist's own text colour, no native chrome
+    QColor text = palette().color(QPalette::Text);
+    QColor line = text;
+    line.setAlpha(60);
+    m_header->setStyleSheet(QString("QHeaderView { background: transparent; }"
+                                    "QHeaderView::section { background: transparent; color: %1;"
+                                    " border: none; border-bottom: 1px solid %2;"
+                                    " border-right: 1px solid %2; padding: 2px 4px; }")
+                                .arg(text.name(QColor::HexArgb), line.name(QColor::HexArgb)));
+}
+
+void NPlaylistWidget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange) {
+        if (m_columnsMode) {
+            updateHeaderStyle();
+        }
+    }
+    QListWidget::changeEvent(event);
+}
+
+int NPlaylistWidget::columnCount() const
+{
+    return m_columnFormats.size();
+}
+
+int NPlaylistWidget::columnX(int column) const
+{
+    return m_header->sectionViewportPosition(column);
+}
+
+int NPlaylistWidget::columnWidth(int column) const
+{
+    return m_header->sectionSize(column);
+}
+
+Qt::Alignment NPlaylistWidget::columnAlignment(int column) const
+{
+    return m_columnAlignments.value(column, Qt::AlignLeft);
 }
 
 void NPlaylistWidget::setTrackInfoReader(NTrackInfoReader *reader)
@@ -91,6 +241,7 @@ void NPlaylistWidget::resizeEvent(QResizeEvent *event)
 {
     startProcessVisibleItemsTimer();
     QListWidget::resizeEvent(event);
+    updateHeaderGeometry();
 }
 
 void NPlaylistWidget::startProcessVisibleItemsTimer()
@@ -113,8 +264,17 @@ void NPlaylistWidget::processVisibleItems()
     minRow = qMax(0, minRow - totalRows);
     maxRow = qMin(maxRow + totalRows, count() - 1);
     QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+
+    // Reading tags can block (large files, iCloud/network storage), so cap the
+    // work per pass and continue on the next timer tick to keep the UI responsive.
+    QElapsedTimer budget;
+    budget.start();
     for (int i = minRow; i <= maxRow; ++i) {
         emitItemsChanged = refreshItemData(itemAtRow(i), titleFormat) || emitItemsChanged;
+        if (i < maxRow && budget.elapsed() > 25) {
+            startProcessVisibleItemsTimer();
+            break;
+        }
     }
 
     if (emitItemsChanged) {
@@ -248,7 +408,10 @@ void NPlaylistWidget::resetPlayingItem()
 
 bool NPlaylistWidget::refreshItemData(NPlaylistWidgetItem *item, QString titleFormat, bool force)
 {
-    if (!force && titleFormat == item->data(N::TitleFormatRole).toString() &&
+    // column texts are not persisted; refresh rows that don't have them yet
+    bool columnsMissing = m_columnsMode && item->data(N::ColumnsRole).toStringList().size() !=
+                                               m_columnFormats.size();
+    if (!force && !columnsMissing && titleFormat == item->data(N::TitleFormatRole).toString() &&
         !item->text().isEmpty() && item->data(N::DurationRole).toInt() != -1) {
         return false;
     }
@@ -259,6 +422,13 @@ bool NPlaylistWidget::refreshItemData(NPlaylistWidgetItem *item, QString titleFo
         m_trackInfoReader->setSource(file);
         title = m_trackInfoReader->toString(titleFormat);
         item->setData(N::DurationRole, m_trackInfoReader->toString("%D").toInt());
+        if (m_columnsMode) {
+            QStringList columns;
+            for (const QString &format : m_columnFormats) {
+                columns << m_trackInfoReader->toString(format);
+            }
+            item->setData(N::ColumnsRole, columns);
+        }
     }
 
     item->setText(title);

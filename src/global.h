@@ -93,7 +93,8 @@ public:
         PositionRole,
         TitleFormatRole,
         TrackIndexRole,
-        IdRole
+        IdRole,
+        ColumnsRole
     };
 
     enum PlaybackState
