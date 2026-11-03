@@ -15,6 +15,10 @@
 
 #include "containerGstreamer.h"
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QFileInfo>
+
 #include "common.h"
 #include "playbackEngineGstreamer.h"
 #include "waveformBuilderGstreamer.h"
@@ -25,6 +29,20 @@
 NContainerGstreamer::NContainerGstreamer(QObject *parent) : QObject(parent)
 {
     qputenv("GST_REGISTRY", QString("%1/gstreamer-1.0.registry.bin").arg(NCore::rcDir()).toUtf8());
+
+#ifdef Q_OS_MAC
+    // Self-contained app bundle: use GStreamer plugins shipped inside it
+    // instead of a system (e.g. Homebrew) installation.
+    QDir bundledPlugins(QCoreApplication::applicationDirPath() + "/../PlugIns/gstreamer");
+    if (bundledPlugins.exists()) {
+        qputenv("GST_PLUGIN_SYSTEM_PATH", bundledPlugins.absolutePath().toUtf8());
+        qunsetenv("GST_PLUGIN_PATH");
+        QString scanner = QCoreApplication::applicationDirPath() + "/gst-plugin-scanner";
+        if (QFileInfo::exists(scanner)) {
+            qputenv("GST_PLUGIN_SCANNER", scanner.toUtf8());
+        }
+    }
+#endif
 
     m_plugins << new NPlaybackEngineGStreamer()
 #ifdef _N_GSTREAMER_TAGREADER_PLUGIN_
