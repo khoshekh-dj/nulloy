@@ -1,5 +1,6 @@
 /********************************************************************
-**  TrackDeck, based on Nulloy Music Player, http://nulloy.com
+**  TrackDeck, https://github.com/khoshekh-dj/trackdeck
+**  Copyright (C) 2026 Khoshekh
 **
 **  This program can be distributed under the terms of the GNU
 **  General Public License version 3.0 as published by the Free

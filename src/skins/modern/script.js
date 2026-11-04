@@ -1,10 +1,11 @@
 /********************************************************************
-**  Nulloy Music Player, http://nulloy.com
+**  TrackDeck, https://github.com/khoshekh-dj/trackdeck
 **
 **  "Modern" skin. This skin package including all images, cascading
 **  style sheets, UI forms, and JavaScript files is released under
 **  Attribution-ShareAlike Unported License 3.0 (CC-BY-SA 3.0):
 **  http://creativecommons.org/licenses/by-sa/3.0/
+**  Credits for the skins TrackDeck's skins build on are in README.md.
 **
 *********************************************************************/
 
