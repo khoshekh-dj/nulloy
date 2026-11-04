@@ -136,7 +136,7 @@ NSettings::NSettings(QObject *parent)
     initValue("Volume", 0.8);
     initValue("ShowDecibelsVolume", false);
     initValue("WaveformRgb", true);
-    initValue("WaveformColorScheme", QString("rgb")); // rgb, vivid, rekordbox, accent
+    initValue("WaveformColorScheme", QString("rgb")); // rgb, vivid, accent
     initValue("AccentColor", QString("#3D8BFF"));
     initValue("AmbientBackground", true);
 

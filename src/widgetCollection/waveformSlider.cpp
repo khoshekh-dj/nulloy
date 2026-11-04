@@ -296,16 +296,6 @@ QColor NWaveformSlider::bandColor(qreal low, qreal mid, qreal high) const
         return QColor::fromRgbF(r, g, b);
     }
 
-    if (m_colorScheme == "rekordbox") {
-        // 3-band blend: bass blue, mids orange, highs white
-        static const QColor bass(0x1E, 0x6B, 0xFF), mids(0xFF, 0x9A, 0x2E), highs(0xFF, 0xFF, 0xFF);
-        qreal sum = low + mid + high;
-        qreal wl = low / sum, wm = mid / sum, wh = high / sum;
-        return QColor::fromRgbF(wl * bass.redF() + wm * mids.redF() + wh * highs.redF(),
-                                wl * bass.greenF() + wm * mids.greenF() + wh * highs.greenF(),
-                                wl * bass.blueF() + wm * mids.blueF() + wh * highs.blueF());
-    }
-
     if (m_colorScheme == "accent" && m_accentColor.isValid()) {
         // accent colour, brighter (towards white) where there's more top end
         qreal t = 0.7 * high / (low + mid + high);

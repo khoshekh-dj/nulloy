@@ -287,7 +287,10 @@ QToolTip {
 
 /* --- Khoshekh: sky with the setting sun above, the water below --------- */
 #splitTop {
-	background: #05070F url(header.jpg) no-repeat bottom center;
+	/* teal horizon glow rising from the bottom of the header (no sun:
+	   the cream sun hid the cream controls) */
+	background: qradialgradient(cx: 0.5, cy: 1.15, radius: 0.85, fx: 0.5, fy: 1.0,
+		stop: 0 rgba(47, 143, 154, 150), stop: 0.45 rgba(30, 95, 110, 70), stop: 1 #05070F);
 }
 #waveformSlider {
 	qproperty-background: rgba(5, 7, 15, 150);
