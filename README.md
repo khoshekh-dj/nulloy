@@ -10,17 +10,17 @@
 =======
 
 ### Modern skin
-A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. Choose it in Preferences → Skin → *Modern*, then restart TrackDeck.
+A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. This is the default skin. To switch to another one, use Preferences → Skin, then restart TrackDeck.
 
 ![Modern skin](docs/screenshots/modern-skin.png)
 
 ### RGB waveform
-The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. Turn it on in Preferences → *Color waveform by frequency*.
+The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. It's on by default. To turn it off, untick Preferences → *Color waveform by frequency*.
 
 ![RGB waveform](docs/screenshots/rgb-waveform.png)
 
 ### Playlist columns
-The playlist can show Artist, Title, Album, BPM and Duration from your tags, in resizable columns. Turn it on in Preferences → *Show playlist as columns*.
+The playlist can show Artist, Title, Album, BPM and Duration from your tags, in resizable columns. It's on by default. To turn it off, untick Preferences → *Show playlist as columns*.
 
 ![Playlist columns](docs/screenshots/playlist-columns.png)
 
