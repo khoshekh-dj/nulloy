@@ -90,7 +90,7 @@ NSettings::NSettings(QObject *parent)
     }
 
     initValue("PlaylistTrackInfo", "%F{ (%d)}");
-    initValue("PlaylistColumns", false);
+    initValue("PlaylistColumns", true);
     // one entry per column: "Header|track info format[|r]" ("r" = right-aligned)
     initValue("PlaylistColumnsFormat", QStringList() << "Artist|%a"
                                                      << "Title|{%t|%F}"
@@ -127,7 +127,7 @@ NSettings::NSettings(QObject *parent)
     initValue("LoadNextSort", QDir::Name);
     initValue("Volume", 0.8);
     initValue("ShowDecibelsVolume", false);
-    initValue("WaveformRgb", false);
+    initValue("WaveformRgb", true);
 
 #ifdef Q_OS_WIN
     initValue("TaskbarProgress", true);
