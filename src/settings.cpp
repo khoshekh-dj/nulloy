@@ -140,6 +140,7 @@ NSettings::NSettings(QObject *parent)
     initValue("AccentColor", QString("#3D8BFF"));
     initValue("AmbientBackground", true);
     initValue("BpmDetection", true);
+    initValue("Visualiser", true);
 
 #ifdef Q_OS_WIN
     initValue("TaskbarProgress", true);

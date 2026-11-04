@@ -1299,6 +1299,13 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="visualiserCheckBox">
+         <property name="text">
+          <string>Show the live spectrum visualiser (Modern and Khoshekh skins)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_5">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
