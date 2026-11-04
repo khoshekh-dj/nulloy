@@ -58,6 +58,9 @@ private:
     bool m_hasMedia;
     bool m_needsUpdate;
     bool m_rgbMode;
+    QString m_colorScheme; // "rgb", "vivid", "rekordbox" or "accent"
+    QColor m_accentColor;
+    QColor bandColor(qreal low, qreal mid, qreal high) const;
 
     void drawRgbWave(QImage &image);
     void mousePressEvent(QMouseEvent *event);
@@ -77,6 +80,7 @@ public slots:
     void setPausedState(bool);
     void setValue(qreal value);
     void setRgbMode(bool enabled);
+    void setColorScheme(const QString &scheme, const QColor &accent);
 
 private slots:
     void checkForUpdate();
