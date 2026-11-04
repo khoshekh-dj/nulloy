@@ -2,7 +2,7 @@
 
 ## What's new in this fork
 
-This fork adds the features below to [Nulloy](https://github.com/nulloy/nulloy). A macOS build is available in the **[latest release](https://github.com/nmarchini/nulloy/releases/latest)** (Apple Silicon only).
+This fork adds the features below to [Nulloy](https://github.com/nulloy/nulloy). A macOS build is available in the **[latest release](https://github.com/khoshekh-dj/nulloy/releases/latest)** (Apple Silicon only).
 
 ### RGB waveform
 The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. Turn it on in Preferences → *Color waveform by frequency*.
