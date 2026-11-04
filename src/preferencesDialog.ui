@@ -1299,6 +1299,101 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
+        <spacer name="verticalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Waveform sections:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="waveformTrackInfoTable">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="verticalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarAlwaysOff</enum>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <row>
+          <property name="text">
+           <string>Top</string>
+          </property>
+         </row>
+         <row>
+          <property name="text">
+           <string>Middle</string>
+          </property>
+         </row>
+         <row>
+          <property name="text">
+           <string>Bottom</string>
+          </property>
+         </row>
+         <column>
+          <property name="text">
+           <string>Left</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Center</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Right</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::MinimumExpanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="visualiserTab">
+      <attribute name="title">
+       <string>Visualiser</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="visualiserTabLayout">
+       <item>
         <widget class="QCheckBox" name="visualiserCheckBox">
          <property name="text">
           <string>Show the live spectrum visualiser (Modern and Khoshekh skins)</string>
@@ -1442,89 +1537,14 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
-        <spacer name="verticalSpacer_5">
+        <spacer name="visualiserTabSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
            <width>20</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Waveform sections:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTableWidget" name="waveformTrackInfoTable">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="verticalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
-         </property>
-         <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
-         </property>
-         <property name="selectionMode">
-          <enum>QAbstractItemView::SingleSelection</enum>
-         </property>
-         <row>
-          <property name="text">
-           <string>Top</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Middle</string>
-          </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>Bottom</string>
-          </property>
-         </row>
-         <column>
-          <property name="text">
-           <string>Left</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Center</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Right</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::MinimumExpanding</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>10</height>
+           <height>40</height>
           </size>
          </property>
         </spacer>
