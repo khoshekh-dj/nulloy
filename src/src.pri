@@ -17,7 +17,6 @@ include($$PROJECT_DIR/3rdParty/qtiocompressor-2.3.1/src/qtiocompressor.pri)
 include($$SRC_DIR/i18n/i18n.pri)
 include($$SRC_DIR/platform/trash.pri)
 win32:include($$SRC_DIR/platform/w7TaskBar.pri)
-win32:include($$SRC_DIR/platform/winIcons.pri)
 mac:include($$SRC_DIR/platform/macDock.pri)
 mac:include($$SRC_DIR/platform/macMediaKeys.pri)
 unix:!mac:include($$SRC_DIR/platform/xcb.pri)
@@ -73,7 +72,7 @@ system(cp $$SRC_DIR/icons/icons.qrc $$TMP_DIR/)
 RESOURCES += $$TMP_DIR/icons.qrc
 CONVERT_CMD = convert
 COMPOSITE_CMD = composite
-win32:!unix_mingw {
+win32 {
     CONVERT_CMD = magick convert
     COMPOSITE_CMD = magick composite
 }

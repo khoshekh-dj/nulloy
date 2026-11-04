@@ -30,14 +30,19 @@ NContainerGstreamer::NContainerGstreamer(QObject *parent) : QObject(parent)
 {
     qputenv("GST_REGISTRY", QString("%1/gstreamer-1.0.registry.bin").arg(NCore::rcDir()).toUtf8());
 
+#if defined Q_OS_MAC || defined Q_OS_WIN
+    // Self-contained package: use GStreamer plugins shipped with the app
+    // instead of a system installation (Homebrew, MSYS2, ...).
 #ifdef Q_OS_MAC
-    // Self-contained app bundle: use GStreamer plugins shipped inside it
-    // instead of a system (e.g. Homebrew) installation.
     QDir bundledPlugins(QCoreApplication::applicationDirPath() + "/../PlugIns/gstreamer");
+    QString scanner = QCoreApplication::applicationDirPath() + "/gst-plugin-scanner";
+#else
+    QDir bundledPlugins(QCoreApplication::applicationDirPath() + "/gstreamer");
+    QString scanner = QCoreApplication::applicationDirPath() + "/gst-plugin-scanner.exe";
+#endif
     if (bundledPlugins.exists()) {
         qputenv("GST_PLUGIN_SYSTEM_PATH", bundledPlugins.absolutePath().toUtf8());
         qunsetenv("GST_PLUGIN_PATH");
-        QString scanner = QCoreApplication::applicationDirPath() + "/gst-plugin-scanner";
         if (QFileInfo::exists(scanner)) {
             qputenv("GST_PLUGIN_SCANNER", scanner.toUtf8());
         }
