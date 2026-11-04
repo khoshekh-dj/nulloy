@@ -36,7 +36,7 @@ cp "$PREFIX/libexec/gstreamer-1.0/gst-plugin-scanner.exe" "$APP/"
 
 # --- Qt runtime (platform plugin, styles, image formats, ...) ---------------
 WINDEPLOYQT=$(command -v windeployqt-qt5 || command -v windeployqt)
-"$WINDEPLOYQT" --no-translations --no-compiler-runtime --no-opengl-sw \
+"$WINDEPLOYQT" --no-translations --no-compiler-runtime --no-opengl-sw --no-angle --no-system-d3d-compiler \
     --dir "$APP" "$APP/TrackDeck.exe" "$APP"/plugins/*.dll > "$OUT.windeployqt.log" 2>&1 || {
     cat "$OUT.windeployqt.log"; exit 1; }
 
