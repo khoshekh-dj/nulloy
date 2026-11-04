@@ -22,6 +22,7 @@
 #include "label.h"
 #include "playlistWidget.h"
 #include "slider.h"
+#include "spectrumWidget.h"
 #include "volumeSlider.h"
 #include "waveformSlider.h"
 
@@ -42,6 +43,7 @@ N_WIDGET_PLUGIN(NSlider)
 N_WIDGET_PLUGIN(NVolumeSlider)
 N_WIDGET_PLUGIN(NWaveformSlider)
 N_WIDGET_PLUGIN(NCoverWidget)
+N_WIDGET_PLUGIN(NSpectrumWidget)
 N_WIDGET_PLUGIN(QSizeGrip)
 
 static inline QString _domXml(const QString &className, const QString &name)
@@ -88,4 +90,5 @@ NWidgetCollection::NWidgetCollection(QObject *parent) : QObject(parent)
     m_plugins.push_back(new NPlaylistWidgetPlugin(this));
     m_plugins.push_back(new NLabelPlugin(this));
     m_plugins.push_back(new NCoverWidgetPlugin(this));
+    m_plugins.push_back(new NSpectrumWidgetPlugin(this));
 }

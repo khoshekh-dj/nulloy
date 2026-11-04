@@ -18,6 +18,9 @@
 
 #include <gst/gst.h>
 
+#include <QList>
+#include <QVector>
+
 #include "global.h"
 #include "playbackEngineInterface.h"
 #include "plugin.h"
@@ -32,6 +35,21 @@ class NPlaybackEngineGStreamer : public NPlaybackEngineInterface, public NPlugin
 private:
     GstElement *m_playbin;
     GstElement *m_pitchElement;
+
+    // live spectrum for the visualiser: frames are queued as the spectrum
+    // element measures them and released when their audio is actually heard
+    struct SpectrumFrame
+    {
+        GstClockTime due;
+        QVector<float> magnitudes;
+    };
+    GstElement *m_spectrum;
+    bool m_spectrumEnabled;
+    int m_spectrumRate;
+    QList<SpectrumFrame> m_spectrumQueue;
+    void queueSpectrum(GstMessage *msg);
+    void releaseSpectrum();
+    void clearSpectrum();
 
     QTimer *m_checkStatusTimer;
     QTimer *m_emitStateTimer;
@@ -99,6 +117,8 @@ private slots:
 
 public:
     Q_INVOKABLE void _scheduleReopenAudioOutput(); // called by name from the CoreAudio listener
+    // Turns the visualiser's spectrum analysis on or off (called by name).
+    Q_INVOKABLE void setSpectrumEnabled(bool enabled);
 
 signals:
     void positionChanged(qreal pos);
@@ -108,6 +128,9 @@ signals:
     void mediaFinished(const QString &file, int context);
     void nextMediaRequested();
     void mediaFailed(const QString &file, int context);
+    // magnitudes in dB (about -80..0) for equal-width bands from 0 Hz to
+    // sampleRate / 2, emitted ~60 times a second while playing
+    void spectrumChanged(const QVector<float> &magnitudes, int sampleRate);
     void stateChanged(N::PlaybackState state);
     void tick(qint64 msec);
 };
