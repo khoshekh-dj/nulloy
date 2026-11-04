@@ -15,6 +15,7 @@
 
 #include "playlistWidget.h"
 
+#include <QApplication>
 #include <QContextMenuEvent>
 #include <QDrag>
 #include <QElapsedTimer>
@@ -97,9 +98,18 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_header->setSectionResizeMode(QHeaderView::Interactive);
     m_header->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_header->hide();
+    m_columnsAutoWidth = true;
+    m_applyingColumnWidths = false;
+    m_headerPressed = false;
+    m_header->viewport()->installEventFilter(this);
     connect(m_header, &QHeaderView::sectionResized, [this]() {
         viewport()->update();
-        saveColumnWidths();
+        // only dragging a divider on the header counts as the user resizing
+        // (the last section also resizes itself during layout and window resizes)
+        if (!m_applyingColumnWidths && m_headerPressed) {
+            m_columnsAutoWidth = false;
+            saveColumnWidths();
+        }
     });
     setColumnsMode(NSettings::instance()->value("PlaylistColumns").toBool());
 }
@@ -132,13 +142,55 @@ void NPlaylistWidget::loadColumns()
                                      Qt::TextAlignmentRole);
     }
 
-    // restore widths, or split the available width evenly
-    QStringList widths = NSettings::instance()->value("PlaylistColumnWidths").toStringList();
-    int fallback = qMax(40, viewport()->width() / qMax(1, headers.size()));
-    for (int i = 0; i < headers.size(); ++i) {
-        int w = (i < widths.size()) ? widths.at(i).toInt() : 0;
-        m_header->resizeSection(i, w > 0 ? w : fallback);
+    // restore the user's widths; otherwise size columns proportionally
+    QStringList widths = NSettings::instance()->value("PlaylistColumnSizes").toStringList();
+    bool haveWidths = widths.size() == headers.size();
+    for (int i = 0; haveWidths && i < widths.size(); ++i) {
+        haveWidths = widths.at(i).toInt() > 0;
     }
+    m_columnsAutoWidth = !haveWidths;
+    m_applyingColumnWidths = true;
+    if (haveWidths) {
+        for (int i = 0; i < headers.size(); ++i) {
+            m_header->resizeSection(i, widths.at(i).toInt());
+        }
+    }
+    m_applyingColumnWidths = false;
+    if (m_columnsAutoWidth) {
+        applyAutoColumnWidths();
+    }
+}
+
+void NPlaylistWidget::applyAutoColumnWidths()
+{
+    int count = m_header->count();
+    int available = viewport()->width();
+    if (count == 0 || available <= 0) {
+        return;
+    }
+    // narrow numeric columns, wider text columns
+    QList<int> weights;
+    int total = 0;
+    for (int i = 0; i < count; ++i) {
+        QString header = m_headerModel->headerData(i, Qt::Horizontal).toString().toLower();
+        int w = 20;
+        if (header == "title") {
+            w = 35;
+        } else if (header == "artist" || header == "album") {
+            w = 25;
+        } else if (header == "bpm" || header == "key" || header == "year" ||
+                   m_columnAlignments.value(i) == Qt::AlignRight) {
+            w = 8;
+        }
+        weights << w;
+        total += w;
+    }
+    m_applyingColumnWidths = true;
+    for (int i = 0; i < count; ++i) {
+        m_header->resizeSection(i, qMax(40, available * weights.at(i) / total));
+    }
+    m_applyingColumnWidths = false;
+    viewport()->update();
 }
 
 void NPlaylistWidget::saveColumnWidths()
@@ -150,7 +202,7 @@ void NPlaylistWidget::saveColumnWidths()
     for (int i = 0; i < m_header->count(); ++i) {
         widths << QString::number(m_header->sectionSize(i));
     }
-    NSettings::instance()->setValue("PlaylistColumnWidths", widths);
+    NSettings::instance()->setValue("PlaylistColumnSizes", widths);
 }
 
 void NPlaylistWidget::setColumnsMode(bool enable)
@@ -212,6 +264,18 @@ void NPlaylistWidget::changeEvent(QEvent *event)
     QListWidget::changeEvent(event);
 }
 
+bool NPlaylistWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_header->viewport()) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            m_headerPressed = true;
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            m_headerPressed = false;
+        }
+    }
+    return QListWidget::eventFilter(watched, event);
+}
+
 int NPlaylistWidget::columnCount() const
 {
     return m_columnFormats.size();
@@ -242,6 +306,9 @@ void NPlaylistWidget::resizeEvent(QResizeEvent *event)
     startProcessVisibleItemsTimer();
     QListWidget::resizeEvent(event);
     updateHeaderGeometry();
+    if (m_columnsMode && m_columnsAutoWidth) {
+        applyAutoColumnWidths();
+    }
 }
 
 void NPlaylistWidget::startProcessVisibleItemsTimer()

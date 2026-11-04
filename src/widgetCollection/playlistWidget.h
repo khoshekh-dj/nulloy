@@ -61,6 +61,11 @@ private:
     void updateHeaderGeometry();
     void updateHeaderStyle();
     void saveColumnWidths();
+    // until the user resizes a column, widths follow the playlist width
+    bool m_columnsAutoWidth;
+    bool m_applyingColumnWidths;
+    bool m_headerPressed; // mouse is down on the header (user dragging a divider)
+    void applyAutoColumnWidths();
     // << columns mode
 
     void addItem(NPlaylistWidgetItem *item);
@@ -68,6 +73,7 @@ private:
     void contextMenuEvent(QContextMenuEvent *event);
     void resizeEvent(QResizeEvent *event);
     void changeEvent(QEvent *event);
+    bool eventFilter(QObject *watched, QEvent *event) override;
     bool refreshItemData(NPlaylistWidgetItem *item, QString titleFormat, bool force = false);
     NPlaylistWidgetItem *nextItem(NPlaylistWidgetItem *) const;
     NPlaylistWidgetItem *prevItem(NPlaylistWidgetItem *item) const;

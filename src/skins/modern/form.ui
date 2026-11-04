@@ -486,7 +486,7 @@ QToolTip {
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Nulloy</string>
+                 <string>TrackDeck</string>
                 </property>
                </widget>
               </item>
