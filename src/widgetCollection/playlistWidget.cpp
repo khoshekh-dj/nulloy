@@ -1058,3 +1058,15 @@ void NPlaylistWidget::setFileDropRadius(int radius)
     m_fileDropRadius = radius;
 }
 // << STYLESHEET PROPERTIES
+
+void NPlaylistWidget::refreshItemsForFile(const QString &file)
+{
+    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+    for (int row = 0; row < count(); ++row) {
+        NPlaylistWidgetItem *item = itemAtRow(row);
+        if (item && item->data(N::PathRole).toString() == file) {
+            refreshItemData(item, titleFormat, true);
+        }
+    }
+    viewport()->update();
+}

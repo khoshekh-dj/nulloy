@@ -19,6 +19,7 @@
 #include <gst/gst.h>
 
 #include "abstractWaveformBuilder.h"
+#include "bpmDetector.h"
 #include "global.h"
 #include "plugin.h"
 #include "waveformBuilderInterface.h"
@@ -36,13 +37,21 @@ private:
     GstElement *m_playbin;
     QString m_currentFile;
     QTimer *m_timer;
+    bool m_bpmRequested;
+    bool m_bpmActive;
+    NBpmDetector m_bpmDetector;
     qreal position() const;
 
 private slots:
     void update();
 
+signals:
+    void bpmDetected(const QString &file, qreal bpm);
+
 public:
-    NWaveformBuilderGstreamer(QObject *parent = NULL) : NWaveformBuilderInterface(parent) {}
+    NWaveformBuilderGstreamer(QObject *parent = NULL)
+        : NWaveformBuilderInterface(parent), m_bpmRequested(false), m_bpmActive(false)
+    {}
     ~NWaveformBuilderGstreamer();
 
     void init();
@@ -50,6 +59,7 @@ public:
     N::PluginType type() const { return N::WaveformBuilder; }
 
     void start(const QString &file);
+    void setBpmDetection(bool enabled) { m_bpmRequested = enabled; }
     void stop();
     void positionAndIndex(float &pos, int &index)
     {
@@ -58,7 +68,7 @@ public:
     const NWaveformPeaks &peaks() const { return NAbstractWaveformBuilder::peaks(); }
 
     void setSampleRate(int rate) { m_peaks.setSampleRate(rate); }
-    void handleBuffer(gint16 *pcmBuffer, int nChannels, int nSamples);
+    void handleBuffer(gint16 *pcmBuffer, int nChannels, int nSamples, int rate);
 };
 
 #endif

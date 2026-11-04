@@ -5,7 +5,7 @@ win32:TARGET = PluginGStreamer
 include($$SRC_DIR/plugins/plugin.pri)
 
 CONFIG += link_pkgconfig
-PKGCONFIG += gstreamer-1.0 gstreamer-pbutils-1.0
+PKGCONFIG += gstreamer-1.0 gstreamer-pbutils-1.0 aubio
 mac:LIBS += -framework CoreAudio
 
 HEADERS += $$files(*.h)
