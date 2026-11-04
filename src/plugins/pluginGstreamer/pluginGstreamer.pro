@@ -6,6 +6,7 @@ include($$SRC_DIR/plugins/plugin.pri)
 
 CONFIG += link_pkgconfig
 PKGCONFIG += gstreamer-1.0 gstreamer-pbutils-1.0
+mac:LIBS += -framework CoreAudio
 
 HEADERS += $$files(*.h)
 SOURCES += $$files(*.cpp)

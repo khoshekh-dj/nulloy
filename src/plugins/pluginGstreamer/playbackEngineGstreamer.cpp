@@ -21,6 +21,23 @@
 
 #include "common.h"
 
+#ifdef Q_OS_MAC
+#include <CoreAudio/CoreAudio.h>
+
+// kAudioObjectPropertyElementMain (macOS 12+) == kAudioObjectPropertyElementMaster == 0
+static const AudioObjectPropertyAddress _defaultOutputAddress = {
+    kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyScopeGlobal, 0};
+
+// called on a CoreAudio thread
+static OSStatus _on_default_output_changed(AudioObjectID, UInt32, const AudioObjectPropertyAddress *,
+                                           void *userData)
+{
+    QMetaObject::invokeMethod(reinterpret_cast<QObject *>(userData), "_scheduleReopenAudioOutput",
+                              Qt::QueuedConnection);
+    return noErr;
+}
+#endif
+
 #define NSEC_IN_MSEC 1000000
 #define CROSSFADING_MIN_DURATION_MSEC 1000 // 1 second
 #define SHORT_TICK_THRESHOLD_MSEC 30000    // 30 seconds
@@ -118,6 +135,15 @@ void NPlaybackEngineGStreamer::init()
     m_checkStatusTimer = new QTimer(this);
     connect(m_checkStatusTimer, SIGNAL(timeout()), this, SLOT(checkStatus()));
 
+    m_outputChangedTimer = new QTimer(this);
+    m_outputChangedTimer->setSingleShot(true);
+    m_outputChangedTimer->setInterval(500); // coalesce bursts; let Bluetooth devices settle
+    connect(m_outputChangedTimer, SIGNAL(timeout()), this, SLOT(reopenAudioOutput()));
+#ifdef Q_OS_MAC
+    AudioObjectAddPropertyListener(kAudioObjectSystemObject, &_defaultOutputAddress,
+                                   _on_default_output_changed, this);
+#endif
+
     m_emitStateTimer = new QTimer(this);
     m_emitStateTimer->setSingleShot(true);
     m_emitStateTimer->setInterval(STATE_CHANGE_DEBOUNCE_MSEC);
@@ -143,8 +169,46 @@ NPlaybackEngineGStreamer::~NPlaybackEngineGStreamer()
         return;
     }
 
+#ifdef Q_OS_MAC
+    AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &_defaultOutputAddress,
+                                      _on_default_output_changed, this);
+#endif
     stop();
     gst_object_unref(m_playbin);
+}
+
+void NPlaybackEngineGStreamer::_scheduleReopenAudioOutput()
+{
+    m_outputChangedTimer->start();
+}
+
+void NPlaybackEngineGStreamer::reopenAudioOutput()
+{
+    if (!hasMedia() || m_crossfading) {
+        return;
+    }
+    GstState current = GST_STATE_NULL;
+    gst_element_get_state(m_playbin, &current, NULL, 0);
+    if (current != GST_STATE_PLAYING && current != GST_STATE_PAUSED) {
+        return; // stopped: the next play() opens the current default device anyway
+    }
+
+    gint64 posNsec = 0;
+    bool havePos = gst_element_query_position(m_playbin, GST_FORMAT_TIME, &posNsec);
+
+    // READY releases the audio device; PAUSED reopens it on the current default.
+    // Seek while paused so the track doesn't briefly restart from the beginning.
+    gst_element_set_state(m_playbin, GST_STATE_READY);
+    gst_element_set_state(m_playbin, GST_STATE_PAUSED);
+    gst_element_get_state(m_playbin, NULL, NULL, 2 * GST_SECOND); // wait for preroll
+    if (havePos && posNsec > 0) {
+        gst_element_seek_simple(m_playbin, GST_FORMAT_TIME,
+                                GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE), posNsec);
+        gst_element_get_state(m_playbin, NULL, NULL, 2 * GST_SECOND);
+    }
+    if (current == GST_STATE_PLAYING) {
+        gst_element_set_state(m_playbin, GST_STATE_PLAYING);
+    }
 }
 
 bool NPlaybackEngineGStreamer::gstSetFile(const QString &file, int context, bool prepareNext)

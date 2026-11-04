@@ -36,6 +36,7 @@ private:
     QTimer *m_checkStatusTimer;
     QTimer *m_emitStateTimer;
     QTimer *m_gstBusPopTimer;
+    QTimer *m_outputChangedTimer; // debounces "default audio output changed"
     qreal m_speed;
     bool m_speedPostponed;
     qreal m_pitch;
@@ -92,6 +93,12 @@ public slots:
 
 private slots:
     void checkStatus();
+    // Reopen the audio sink so it picks up the current default output device
+    // (e.g. after switching to Bluetooth headphones), keeping position and state.
+    void reopenAudioOutput();
+
+public:
+    Q_INVOKABLE void _scheduleReopenAudioOutput(); // called by name from the CoreAudio listener
 
 signals:
     void positionChanged(qreal pos);
