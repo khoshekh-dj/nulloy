@@ -100,6 +100,14 @@ NSettings::NSettings(QObject *parent)
     initValue("PlaylistColumnSizes", QStringList());
     initValue("WindowTitleTrackInfo",
               "{\"%a - %t\" — |\"%F\" — }" + QCoreApplication::applicationName() + " %v");
+    {
+        // settings carried over from Nulloy have its name baked into the title format
+        QString title = value("WindowTitleTrackInfo").toString();
+        QString appName = QCoreApplication::applicationName();
+        if (appName != "Nulloy" && title.contains("Nulloy %v")) {
+            setValue("WindowTitleTrackInfo", title.replace("Nulloy %v", appName + " %v"));
+        }
+    }
     initValue("EncodingTrackInfo", "UTF-8");
     initValue("TooltipTrackInfo", "%C");
     initValue("TooltipOffset", QStringList() << QString::number(0) << QString::number(0));
