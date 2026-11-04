@@ -14,6 +14,7 @@
 *********************************************************************/
 
 #include "trackInfoReader.h"
+#include "bpmCache.h"
 #include "pluginLoader.h"
 #include "settings.h"
 
@@ -119,6 +120,20 @@ QString NTrackInfoReader::getInfo(QChar ch) const
         }
         case 'v':
             return QCoreApplication::applicationVersion();
+        case 'M': { // BPM: the tag, or the detected tempo for untagged tracks
+            if (!m_fileInfo.filePath().isEmpty()) {
+                m_reader->setSource(m_fileInfo.filePath());
+            }
+            QString tag = m_reader->getTag(ch).trimmed();
+            if (!tag.isEmpty() && tag.toDouble() > 0) {
+                return tag;
+            }
+            double bpm = 0;
+            if (NBpmCache::instance()->lookup(m_fileInfo.absoluteFilePath(), &bpm)) {
+                return NBpmCache::format(bpm);
+            }
+            return "";
+        }
         default:
             // the tag reader plugin holds a single open file shared by all
             // NTrackInfoReader instances; make sure it points at ours

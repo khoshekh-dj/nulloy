@@ -20,7 +20,7 @@
 
 #include "waveformPeaks.h"
 
-#define WAVEFORM_INTERFACE "Nulloy/NWaveformBuilderInterface/0.7"
+#define WAVEFORM_INTERFACE "Nulloy/NWaveformBuilderInterface/0.8"
 
 class NWaveformBuilderInterface : public QThread
 {
@@ -32,6 +32,11 @@ public:
     virtual void stop() = 0;
     virtual void positionAndIndex(float &pos, int &index) = 0;
     virtual const NWaveformPeaks &peaks() const = 0;
+
+    // Ask the next start() to also detect the track's BPM. Builders that support
+    // it emit bpmDetected(QString file, qreal bpm) when the track has been
+    // decoded; bpm is 0 when no tempo was found or the track was too long.
+    virtual void setBpmDetection(bool enabled) { Q_UNUSED(enabled); }
 
     static QString interfaceString() { return WAVEFORM_INTERFACE; }
 };

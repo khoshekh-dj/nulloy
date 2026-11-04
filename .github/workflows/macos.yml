@@ -39,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install qt@5 gstreamer taglib imagemagick librsvg pkgconf ffmpeg
+          brew install qt@5 gstreamer taglib imagemagick librsvg pkgconf ffmpeg aubio
           echo "$(brew --prefix qt@5)/bin" >> "$GITHUB_PATH"
 
       - name: Configure

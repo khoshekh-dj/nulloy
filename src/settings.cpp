@@ -139,6 +139,7 @@ NSettings::NSettings(QObject *parent)
     initValue("WaveformColorScheme", QString("rgb")); // rgb, vivid, accent
     initValue("AccentColor", QString("#3D8BFF"));
     initValue("AmbientBackground", true);
+    initValue("BpmDetection", true);
 
 #ifdef Q_OS_WIN
     initValue("TaskbarProgress", true);

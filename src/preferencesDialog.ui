@@ -1224,6 +1224,13 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="bpmDetectionCheckBox">
+         <property name="text">
+          <string>Detect BPM for tracks without a BPM tag (tracks under 15 minutes)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QCheckBox" name="waveformRgbCheckBox">
          <property name="text">
           <string>Color waveform by frequency (RGB: bass red, mids green, highs blue)</string>

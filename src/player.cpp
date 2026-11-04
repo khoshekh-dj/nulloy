@@ -22,6 +22,7 @@
 #include <QPainter>
 
 #include "aboutDialog.h"
+#include "bpmCache.h"
 #include "action.h"
 #include "actionManager.h"
 #include "common.h"
@@ -41,6 +42,7 @@
 #include "tagEditorDialog.h"
 #include "trackInfoReader.h"
 #include "trackInfoWidget.h"
+#include "waveformBuilderInterface.h"
 #ifndef _N_NO_UPDATE_CHECK_
 #include "updateChecker.h"
 #endif
@@ -233,6 +235,10 @@ void NPlayer::connectSignals()
             SLOT(on_playbackEngine_stateChanged(N::PlaybackState)));
     connect(m_playbackEngine, SIGNAL(positionChanged(qreal)), m_waveformSlider,
             SLOT(setValue(qreal)));
+    if (QObject *builder = dynamic_cast<QObject *>(NPluginLoader::getPlugin(N::WaveformBuilder))) {
+        connect(builder, SIGNAL(bpmDetected(const QString &, qreal)), this,
+                SLOT(handleBpmDetected(const QString &, qreal)));
+    }
     connect(m_playbackEngine, SIGNAL(tick(qint64)), m_trackInfoWidget,
             SLOT(updatePlaybackLabels(qint64)));
     connect(m_playbackEngine, SIGNAL(message(N::MessageIcon, const QString &, const QString &)),
@@ -457,6 +463,7 @@ void NPlayer::loadDefaultPlaylist()
 
             loadCoverArt(file);
 
+            prepareBpmDetection(file);
             m_waveformSlider->setMedia(file);
             m_waveformSlider->setValue(pos);
             m_waveformSlider->setPausedState(true);
@@ -597,6 +604,7 @@ void NPlayer::on_playbackEngine_mediaChanged(const QString &file, int)
     m_mainWindow->setTitle(title);
     m_systemTray->setToolTip(title);
 
+    prepareBpmDetection(file);
     m_waveformSlider->setMedia(file);
     m_trackInfoWidget->updateFileLabels(file);
     loadCoverArt(file);
@@ -978,4 +986,40 @@ QString NPlayer::trackInfo(const QString &format)
     }
     m_skinTrackInfoReader->setSource(file);
     return m_skinTrackInfoReader->toString(format);
+}
+
+void NPlayer::prepareBpmDetection(const QString &file)
+{
+    NWaveformBuilderInterface *builder = dynamic_cast<NWaveformBuilderInterface *>(
+        NPluginLoader::getPlugin(N::WaveformBuilder));
+    if (!builder) {
+        return;
+    }
+
+    bool wanted = m_settings->value("BpmDetection").toBool() && !file.isEmpty() &&
+                  QFileInfo(file).isFile() && !NBpmCache::instance()->lookup(file, NULL);
+    if (wanted) {
+        // tagged tracks don't need it, and anything 15 minutes or longer is
+        // most likely a DJ mix, where one BPM would be meaningless
+        NTagReaderInterface *reader = tagReader();
+        reader->setSource(file);
+        QString tag = reader->getTag('M').trimmed();
+        QString seconds = reader->getTag('D');
+        if (!tag.isEmpty() && tag.toDouble() > 0) {
+            wanted = false;
+        } else if (!seconds.isEmpty() && seconds.toInt() >= 15 * 60) {
+            wanted = false;
+        }
+    }
+    builder->setBpmDetection(wanted);
+}
+
+void NPlayer::handleBpmDetected(const QString &file, qreal bpm)
+{
+    NBpmCache::instance()->insert(file, bpm);
+    m_playlistWidget->refreshItemsForFile(file);
+    NPlaylistWidgetItem *playing = m_playlistWidget->playingItem();
+    if (playing && playing->data(N::PathRole).toString() == file) {
+        m_trackInfoWidget->updateFileLabels(file);
+    }
 }
