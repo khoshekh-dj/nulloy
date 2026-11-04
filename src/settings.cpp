@@ -97,7 +97,7 @@ NSettings::NSettings(QObject *parent)
                                                      << "Album|%A"
                                                      << "BPM|%M|r"
                                                      << "Duration|%d|r");
-    initValue("PlaylistColumnWidths", QStringList());
+    initValue("PlaylistColumnSizes", QStringList());
     initValue("WindowTitleTrackInfo",
               "{\"%a - %t\" — |\"%F\" — }" + QCoreApplication::applicationName() + " %v");
     initValue("EncodingTrackInfo", "UTF-8");

@@ -61,6 +61,10 @@ private:
     void updateHeaderGeometry();
     void updateHeaderStyle();
     void saveColumnWidths();
+    // until the user resizes a column, widths follow the playlist width
+    bool m_columnsAutoWidth;
+    bool m_applyingColumnWidths;
+    void applyAutoColumnWidths();
     // << columns mode
 
     void addItem(NPlaylistWidgetItem *item);

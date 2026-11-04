@@ -81,7 +81,7 @@ Main.prototype.updateTrackLabels = function()
 {
     var title = Player.trackInfo("{%t|%F}");
     if (title == "") {
-        Ui.trackTitleLabel.text = "Nulloy";
+        Ui.trackTitleLabel.text = "TrackDeck";
         Ui.trackArtistLabel.text = "Drop music here to start";
         Ui.trackMetaLabel.text = "";
         return;
