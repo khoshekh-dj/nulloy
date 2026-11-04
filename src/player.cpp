@@ -692,7 +692,7 @@ void NPlayer::updateAmbientImage()
                                canvas.height());
         // darken so text and controls stay readable
         QPainter painter(&blurred);
-        painter.fillRect(blurred.rect(), QColor(10, 12, 16, 135));
+        painter.fillRect(blurred.rect(), QColor(10, 12, 16, 95));
         painter.end();
 
         // a new name each time: stylesheets cache images by path

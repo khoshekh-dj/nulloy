@@ -238,9 +238,9 @@ Main.prototype.applyStyle = function()
         // literal url( in skin files to url(skin:...), leaves this path alone
         sheet += "\n#borderWidget { background: #0F1115 url" + "(\"" + this.ambientImage + "\") no-repeat center center; }"
                + "\n#splitter, #splitTop, #splitter::handle { background: transparent; }"
-               + "\n#playlistWidget { background: rgba(15, 17, 21, 150); }"
+               + "\n#playlistWidget { background: rgba(15, 17, 21, 105); }"
                + "\n#coverWidget { background: rgba(23, 26, 33, 120); }"
-               + "\n#waveformSlider { qproperty-background: rgba(18, 21, 27, 160); }";
+               + "\n#waveformSlider { qproperty-background: rgba(18, 21, 27, 125); }";
     }
 
     Ui.mainWindow.styleSheet = sheet;
