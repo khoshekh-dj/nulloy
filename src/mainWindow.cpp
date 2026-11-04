@@ -36,6 +36,8 @@
 #endif
 
 #include <QApplication>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QDesktopWidget>
 #include <QEvent>
 #include <QIcon>
@@ -104,19 +106,37 @@ bool NMainWindow::isFullSceen()
 
 void NMainWindow::loadSettings()
 {
-    QPoint _pos;
-    QStringList posList = NSettings::instance()->value("Position").toStringList();
-    if (!posList.isEmpty()) {
-        _pos = QPoint(posList.at(0).toInt(), posList.at(1).toInt());
-        move(_pos);
-    }
-
     QSize _size;
     QStringList sizeList = NSettings::instance()->value("Size").toStringList();
     if (!sizeList.isEmpty()) {
         _size = QSize(sizeList.at(0).toInt(), sizeList.at(1).toInt());
     } else {
         _size = QSize(430, 350);
+    }
+
+    QPoint _pos;
+    QStringList posList = NSettings::instance()->value("Position").toStringList();
+    if (posList.size() >= 2) {
+        _pos = QPoint(posList.at(0).toInt(), posList.at(1).toInt());
+
+        // The saved position may belong to a display that is no longer connected.
+        // Keep it only if a decent part of the window's top lands on a screen.
+        QRect top(_pos, QSize(_size.width(), qMin(_size.height(), 60)));
+        bool visible = false;
+        foreach (QScreen *screen, QGuiApplication::screens()) {
+            QRect hit = screen->availableGeometry().intersected(top);
+            if (hit.width() >= qMin(100, _size.width()) && hit.height() >= qMin(30, top.height())) {
+                visible = true;
+                break;
+            }
+        }
+        if (!visible && QGuiApplication::primaryScreen()) {
+            QRect avail = QGuiApplication::primaryScreen()->availableGeometry();
+            _size = _size.boundedTo(avail.size());
+            _pos = QPoint(avail.x() + (avail.width() - _size.width()) / 2,
+                          avail.y() + (avail.height() - _size.height()) / 2);
+        }
+        move(_pos);
     }
     resize(_size);
 
