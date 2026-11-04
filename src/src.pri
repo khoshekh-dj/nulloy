@@ -70,11 +70,13 @@ build_pass:CONFIG(static, static|shared) {
 system(cp $$SRC_DIR/icons/icon.svg $$TMP_DIR/)
 system(cp $$SRC_DIR/icons/icons.qrc $$TMP_DIR/)
 RESOURCES += $$TMP_DIR/icons.qrc
-CONVERT_CMD = convert
-COMPOSITE_CMD = composite
+# "-background none" keeps the SVG's transparent corners transparent
+# (ImageMagick otherwise renders them white, giving icons a white edge)
+CONVERT_CMD = convert -background none
+COMPOSITE_CMD = composite -background none
 win32 {
-    CONVERT_CMD = magick convert
-    COMPOSITE_CMD = magick composite
+    CONVERT_CMD = magick convert -background none
+    COMPOSITE_CMD = magick composite -background none
 }
 
 ico.depends = $$SRC_DIR/icons/icon.svg
@@ -102,7 +104,7 @@ mac {
     # bundle id: com.khoshekh.<TARGET>
     QMAKE_TARGET_BUNDLE_PREFIX = com.khoshekh
     system($$QMAKE_MKDIR $$TMP_DIR/icon.iconset)
-    SIZES = 16 32 128 256
+    SIZES = 16 32 128 256 512
     for(size, SIZES) {
         system($$CONVERT_CMD $$SRC_DIR/icons/icon.svg -density 72 -resize $${size}x$${size} -units PixelsPerInch $$TMP_DIR/icon.iconset/icon_$${size}x$${size}.png)
     }
