@@ -40,6 +40,7 @@ public:
         QString trebleBoost = "normal"; // off, normal, strong
         QString fallSpeed = "normal";   // slow, normal, fast
         bool peaks = true;
+        int frameRate = 30;
         QString colors = "waveform"; // waveform, accent, gradient
         QColor gradientFrom = QColor("#FF3D9A");
         QColor gradientTo = QColor("#3D8BFF");
@@ -59,9 +60,14 @@ public slots:
 protected:
     void paintEvent(QPaintEvent *event);
     void resizeEvent(QResizeEvent *event);
+    void moveEvent(QMoveEvent *event);
+    void showEvent(QShowEvent *event);
+    void changeEvent(QEvent *event);
+    bool eventFilter(QObject *watched, QEvent *event);
 
 private slots:
     void tick();
+    void updateBackground();
 
 private:
     int barCount() const;
@@ -94,6 +100,20 @@ private:
     QPixmap m_unlitBars;
     QVector<QColor> m_colors;
     bool m_cacheDirty;
+
+    // What's behind the widget (album art, skin backgrounds), captured once.
+    // Painting it ourselves lets the widget be opaque, so Qt doesn't redraw
+    // every translucent layer behind it on every frame.
+    QPixmap m_background;
+    // m_background with the unlit bars already drawn on: one opaque copy per
+    // frame instead of two full-size alpha blends
+    QPixmap m_base;
+    // curve style: gradient brushes are expensive to build (Qt computes a
+    // colour table for each), so they're made once per size/colour change
+    QBrush m_curveArea;
+    QBrush m_curveLine;
+    QBrush m_curvePeak;
+    void scheduleBackgroundUpdate();
 };
 
 #endif

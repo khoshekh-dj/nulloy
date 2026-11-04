@@ -17,6 +17,7 @@
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QEvent>
 #include <QTimer>
 
 #include <cmath>
@@ -87,12 +88,96 @@ NSpectrumWidget::NSpectrumWidget(QWidget *parent) : QWidget(parent)
 
     m_timer = new QTimer(this);
     m_timer->setTimerType(Qt::PreciseTimer);
-    m_timer->setInterval(16);
+    m_timer->setInterval(1000 / 30);
     connect(m_timer, SIGNAL(timeout()), this, SLOT(tick()));
     m_clock.start();
     m_lastTick = 0;
     m_lastFrame = -FRAME_TIMEOUT_MSEC;
     m_cacheDirty = true;
+}
+
+void NSpectrumWidget::scheduleBackgroundUpdate()
+{
+    // until the new snapshot exists, let Qt paint what's behind us as usual
+    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    m_background = QPixmap();
+    m_base = QPixmap();
+    QTimer::singleShot(0, this, SLOT(updateBackground()));
+}
+
+void NSpectrumWidget::updateBackground()
+{
+    if (!isVisible() || size().isEmpty()) {
+        return;
+    }
+    qreal dpr = devicePixelRatioF();
+    QPixmap background(size() * dpr);
+    background.setDevicePixelRatio(dpr);
+    background.fill(Qt::transparent);
+
+    // render each ancestor on its own (no children), outermost first
+    QList<QWidget *> chain;
+    for (QWidget *w = parentWidget(); w; w = w->parentWidget()) {
+        chain.prepend(w);
+        if (w->isWindow()) {
+            break;
+        }
+    }
+    QPainter painter(&background);
+    for (QWidget *w : chain) {
+        QPoint offset = mapTo(w, QPoint(0, 0));
+        w->render(&painter, QPoint(0, 0), QRegion(QRect(offset, size())),
+                  QWidget::DrawWindowBackground);
+    }
+    painter.end();
+
+    m_background = background;
+    m_cacheDirty = true; // recompose m_base
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
+    update();
+}
+
+void NSpectrumWidget::moveEvent(QMoveEvent *event)
+{
+    QWidget::moveEvent(event);
+    scheduleBackgroundUpdate();
+}
+
+void NSpectrumWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    // the skin's script swaps the window's style sheet (album art, accent
+    // colour); watch the ancestors so the snapshot follows
+    for (QWidget *w = parentWidget(); w; w = w->parentWidget()) {
+        w->removeEventFilter(this);
+        w->installEventFilter(this);
+        if (w->isWindow()) {
+            break;
+        }
+    }
+    scheduleBackgroundUpdate();
+}
+
+void NSpectrumWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::StyleChange || event->type() == QEvent::PaletteChange) {
+        scheduleBackgroundUpdate();
+    }
+}
+
+bool NSpectrumWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    switch (event->type()) {
+        case QEvent::StyleChange:
+        case QEvent::PaletteChange:
+        case QEvent::Resize:
+            scheduleBackgroundUpdate();
+            break;
+        default:
+            break;
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 int NSpectrumWidget::barWidth() const
@@ -139,6 +224,7 @@ void NSpectrumWidget::resizeEvent(QResizeEvent *event)
         resetBars(barCount());
     }
     m_cacheDirty = true;
+    scheduleBackgroundUpdate();
 }
 
 void NSpectrumWidget::setColorScheme(bool rgb, const QString &scheme, const QColor &accent)
@@ -155,6 +241,7 @@ void NSpectrumWidget::setColorScheme(bool rgb, const QString &scheme, const QCol
 void NSpectrumWidget::setAppearance(const Appearance &appearance)
 {
     m_appearance = appearance;
+    m_timer->setInterval(1000 / qBound(15, appearance.frameRate, 60));
     if (barCount() != m_level.size()) {
         resetBars(barCount());
     }
@@ -276,9 +363,24 @@ void NSpectrumWidget::renderCache()
     for (int b = 0; b < n; ++b) {
         m_colors[b] = barColor(b, n);
     }
+    if (m_appearance.style == "curve" && n > 0) {
+        auto gradient = [&](qreal alpha) {
+            QLinearGradient across(0, 0, width(), 0);
+            for (int b = 0; b < n; ++b) {
+                QColor c = m_colors.at(b);
+                c.setAlphaF(alpha);
+                across.setColorAt(n > 1 ? (double)b / (n - 1) : 0, c);
+            }
+            return QBrush(across);
+        };
+        m_curveArea = gradient(0.35);
+        m_curveLine = gradient(1.0);
+        m_curvePeak = gradient(0.5);
+    }
     if (n == 0 || size.isEmpty() || m_appearance.style == "curve") {
         m_litBars = QPixmap();
         m_unlitBars = QPixmap();
+        m_base = m_background;
         return;
     }
 
@@ -335,12 +437,29 @@ void NSpectrumWidget::renderCache()
             lit.drawRoundedRect(rect, 2, 2);
         }
     }
+
+    lit.end();
+    unlit.end();
+
+    m_base = QPixmap();
+    if (!m_background.isNull()) {
+        m_base = m_background;
+        QPainter base(&m_base);
+        base.drawPixmap(0, 0, m_unlitBars);
+    }
 }
 
 void NSpectrumWidget::paintBars(QPainter &painter)
 {
     int n = m_level.size();
-    painter.drawPixmap(0, 0, m_unlitBars);
+    if (!m_base.isNull()) {
+        // opaque: a straight copy, no blending
+        painter.setCompositionMode(QPainter::CompositionMode_Source);
+        painter.drawPixmap(0, 0, m_base);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    } else {
+        painter.drawPixmap(0, 0, m_unlitBars);
+    }
 
     bool mirrored = m_appearance.style == "mirrored";
     bool segments = m_appearance.style == "segments";
@@ -393,56 +512,71 @@ void NSpectrumWidget::paintBars(QPainter &painter)
     }
 }
 
+// Points along a smooth curve through the bar centres (Catmull-Rom, sampled).
+static QVector<QPointF> _curvePoints(const QVector<float> &values, double width, double h,
+                                     double usable)
+{
+    int n = values.size();
+    double slot = width / n;
+    QVector<QPointF> p(n);
+    for (int b = 0; b < n; ++b) {
+        // baseline 3 px up, so the line stays visible on silent bands
+        p[b] = QPointF((b + 0.5) * slot, h - 3 - values.at(b) * (usable - 3));
+    }
+    const int steps = 4;
+    QVector<QPointF> out;
+    out.reserve(n * steps + 2);
+    out << QPointF(0, p.first().y());
+    for (int b = 0; b + 1 < n; ++b) {
+        QPointF p0 = p.at(qMax(0, b - 1)), p1 = p.at(b), p2 = p.at(b + 1),
+                p3 = p.at(qMin(n - 1, b + 2));
+        for (int i = 0; i < steps; ++i) {
+            double t = (double)i / steps, t2 = t * t, t3 = t2 * t;
+            out << 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+                          (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+        }
+    }
+    out << p.last() << QPointF(width, p.last().y());
+    return out;
+}
+
+// A line drawn as a thin filled band: much cheaper than stroking a path.
+static QPolygonF _band(const QVector<QPointF> &points, double thickness)
+{
+    QPolygonF band;
+    band.reserve(points.size() * 2);
+    for (const QPointF &pt : points) {
+        band << pt;
+    }
+    for (int i = points.size() - 1; i >= 0; --i) {
+        band << points.at(i) + QPointF(0, thickness);
+    }
+    return band;
+}
+
 void NSpectrumWidget::paintCurve(QPainter &painter)
 {
-    int n = m_level.size();
+    double w = width();
     double h = height();
     double usable = h - CAP_HEIGHT - 2;
-    double slot = (double)width() / n;
+    int n = m_level.size();
     painter.setRenderHint(QPainter::Antialiasing);
-
-    // smooth line through the bar centres (Catmull-Rom as cubic Beziers)
-    auto curveThrough = [&](const QVector<float> &values) {
-        QVector<QPointF> p(n);
-        for (int b = 0; b < n; ++b) {
-            p[b] = QPointF((b + 0.5) * slot, h - values.at(b) * usable);
-        }
-        QPainterPath path(QPointF(0, p.first().y()));
-        path.lineTo(p.first());
-        for (int b = 0; b + 1 < n; ++b) {
-            QPointF p0 = p.at(qMax(0, b - 1)), p1 = p.at(b), p2 = p.at(b + 1),
-                    p3 = p.at(qMin(n - 1, b + 2));
-            path.cubicTo(p1 + (p2 - p0) / 6.0, p2 - (p3 - p1) / 6.0, p2);
-        }
-        path.lineTo(width(), p.last().y());
-        return path;
-    };
-
-    QLinearGradient across(0, 0, width(), 0);
-    for (int b = 0; b < n; ++b) {
-        across.setColorAt(n > 1 ? (double)b / (n - 1) : 0, m_colors.at(b));
-    }
-
-    QPainterPath line = curveThrough(m_level);
-    QPainterPath fill = line;
-    fill.lineTo(width(), h);
-    fill.lineTo(0, h);
-    fill.closeSubpath();
-
     painter.setPen(Qt::NoPen);
-    painter.setOpacity(0.35);
-    painter.setBrush(across);
-    painter.drawPath(fill);
-    painter.setOpacity(1.0);
-    painter.setBrush(Qt::NoBrush);
-    painter.setPen(QPen(QBrush(across), 2.0));
-    painter.drawPath(line);
+
+    QVector<QPointF> line = _curvePoints(m_level, w, h, usable);
+    QPolygonF area(line);
+    area << QPointF(w, h) << QPointF(0, h);
+    // the area's edge is hidden under the line, so it needs no antialiasing
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.setBrush(m_curveArea);
+    painter.drawPolygon(area);
+
+    painter.setBrush(m_curveLine);
+    painter.drawPolygon(_band(line, 2.0));
 
     if (m_appearance.peaks) {
-        painter.setOpacity(0.6);
-        painter.setPen(QPen(QBrush(across), 1.0, Qt::DotLine));
-        painter.drawPath(curveThrough(m_peak));
-        painter.setOpacity(1.0);
+        painter.setBrush(m_curvePeak);
+        painter.drawPolygon(_band(_curvePoints(m_peak, w, h, usable), 1.0));
     }
 }
 
@@ -455,6 +589,11 @@ void NSpectrumWidget::paintEvent(QPaintEvent *)
         renderCache();
     }
     QPainter painter(this);
+    if (m_appearance.style == "curve" && !m_background.isNull()) {
+        painter.setCompositionMode(QPainter::CompositionMode_Source);
+        painter.drawPixmap(0, 0, m_background);
+        painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    }
     if (m_appearance.style == "curve") {
         paintCurve(painter);
     } else if (!m_litBars.isNull()) {

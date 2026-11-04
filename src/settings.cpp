@@ -147,6 +147,7 @@ NSettings::NSettings(QObject *parent)
     initValue("VisualiserTrebleBoost", "normal");
     initValue("VisualiserFallSpeed", "normal");
     initValue("VisualiserPeaks", true);
+    initValue("VisualiserFrameRate", 30);
     initValue("VisualiserColors", "waveform");
     initValue("VisualiserGradientFrom", "#FF3D9A");
     initValue("VisualiserGradientTo", "#3D8BFF");

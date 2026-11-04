@@ -1489,13 +1489,27 @@ padding: 5px;</string>
             </widget>
            </item>
            <item row="5" column="0">
+            <widget class="QLabel" name="visualiserFrameRateLabel">
+             <property name="text">
+              <string>Frame rate:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QComboBox" name="visualiserFrameRateComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
             <widget class="QLabel" name="visualiserColorsLabel">
              <property name="text">
               <string>Colours:</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="1">
+           <item row="6" column="1">
             <layout class="QHBoxLayout" name="visualiserColorsLayout">
              <item>
             <widget class="QComboBox" name="visualiserColorsComboBox">
@@ -1526,7 +1540,7 @@ padding: 5px;</string>
              </item>
             </layout>
            </item>
-           <item row="6" column="1">
+           <item row="7" column="1">
             <widget class="QCheckBox" name="visualiserPeaksCheckBox">
              <property name="text">
               <string>Show peak caps</string>
