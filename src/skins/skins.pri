@@ -8,7 +8,7 @@ win32:SKINS = Metro Modern Silver Slim
 for(skin, SKINS) {
     _depends = $$SRC_DIR/skins/$$lower($${skin})
     _target = $$SKIN_DEST_DIR/$${skin}.nzs
-    _commands = zip -j -X -x\*design.svg $$_target $$_depends/*
+    _commands = $$sprintf($$QMAKE_MKDIR_CMD, $$shell_path($$SKIN_DEST_DIR)) && zip -j -X -x\*design.svg $$_target $$_depends/*
     win32:!unix_mingw:_commands = 7z a -tzip -w$$_depends -x\!design.svg $$_target $$_depends/*
     eval($${skin}.depends = $$_depends/*)
     eval($${skin}.target = $$_target)

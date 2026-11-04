@@ -60,7 +60,15 @@ unix:!mac:PKGCONFIG += x11
 no-update-check:DEFINES += _N_NO_UPDATE_CHECK_
 
 include(version.pri)
-DEFINES += _N_VERSION_=\""\\\"$${N_VERSION}\\\""\"
+# The version goes into a generated header (rewritten only when it changes)
+# rather than a -D flag: make doesn't rebuild objects when flags change, so
+# local builds kept reporting an old version.
+N_VERSION_HEADER = $$TMP_DIR/n_version.h
+N_VERSION_CONTENT = "$${LITERAL_HASH}define _N_VERSION_ \"$${N_VERSION}\""
+N_VERSION_EXISTING = $$cat($$N_VERSION_HEADER, lines)
+!equals(N_VERSION_EXISTING, $$N_VERSION_CONTENT) {
+    write_file($$N_VERSION_HEADER, N_VERSION_CONTENT)|error("cannot write $$N_VERSION_HEADER")
+}
 build_pass:CONFIG(static, static|shared) {
     DEFINES += _N_STATIC_BUILD_
 } else {
