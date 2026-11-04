@@ -1,3 +1,15 @@
+* 1.0.0, Wed Nov 4 2026
+- First release as TrackDeck (fork of Nulloy by Sergey Vlasov), with new name and icon
+- New "Modern" skin, now the default
+- RGB waveform coloured by frequency (bass/mids/highs), on by default
+- Playlist columns from tags: Artist, Title, Album, BPM, Duration, on by default
+- macOS: media keys, headphone buttons and Control Center (Now Playing)
+- macOS: playback follows the default audio output (e.g. switching to Bluetooth headphones)
+- Fix: blank global shortcuts hijacked the "A" key and could crash the app
+- Fix: waveform elapsed/total label could show another track's length
+- Fix: squashed playlist columns on a fresh install
+- Self-contained macOS .dmg with bundled third-party licences, built by GitHub Actions
+
 * 0.9.9, Sat Jun 8 2024
 - Playlist shuffle now visibly reorders the items
 - New option to quit when playback is finished
