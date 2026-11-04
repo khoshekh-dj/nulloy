@@ -39,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install qt@5 gstreamer taglib imagemagick librsvg pkgconf
+          brew install qt@5 gstreamer taglib imagemagick librsvg pkgconf ffmpeg
           echo "$(brew --prefix qt@5)/bin" >> "$GITHUB_PATH"
 
       - name: Configure
@@ -61,6 +61,20 @@ jobs:
           test -n "$version"
           test -f dist/TrackDeck/TrackDeck.app/Contents/Resources/Licenses/TrackDeck/LICENSE.GPL3
           test -f dist/TrackDeck/TrackDeck.app/Contents/Resources/skins/modern.nzs
+
+      - name: Format test (play each audio format in the packaged app)
+        env:
+          # Homebrew's GStreamer has no WavPack plugin
+          EXPECTED_MISSING: wavpack.wv
+        run: scripts/test-formats.sh dist/TrackDeck/TrackDeck.app Contents/MacOS/TrackDeck "$RUNNER_TEMP/formats"
+
+      - name: Upload format test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-test-logs-macos
+          path: ${{ runner.temp }}/formats/logs
+          if-no-files-found: ignore
 
       - name: Name artifact
         id: name

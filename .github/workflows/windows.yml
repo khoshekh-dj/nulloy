@@ -62,6 +62,7 @@ jobs:
             librsvg:p
             pkgconf:p
             ntldd:p
+            ffmpeg:p
 
       - name: Configure
         run: |
@@ -84,6 +85,17 @@ jobs:
           test -f licenses/TrackDeck/LICENSE.GPL3
           test -f skins/Modern.nzs -o -f skins/modern.nzs
           ls gstreamer | head -40
+
+      - name: Format test (play each audio format in the packaged app)
+        run: scripts/test-formats.sh dist/TrackDeck-windows/TrackDeck TrackDeck.exe "$(cygpath -u "$RUNNER_TEMP")/formats"
+
+      - name: Upload format test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-test-logs-windows
+          path: ${{ runner.temp }}/formats/logs
+          if-no-files-found: ignore
 
       - name: Name artifact
         id: name
