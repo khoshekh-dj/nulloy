@@ -1,0 +1,109 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+    tags: ["trackdeck-v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build TrackDeck (Windows x64, MSYS2 UCRT64)
+    runs-on: windows-2022
+    permissions:
+      contents: write # only used on tag pushes, to attach the zip to the release
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            zip
+            git
+          pacboy: >-
+            toolchain:p
+            qt5-base:p
+            qt5-script:p
+            qt5-svg:p
+            qt5-tools:p
+            qt5-winextras:p
+            gstreamer:p
+            gst-plugins-base:p
+            gst-plugins-good:p
+            gst-plugins-bad:p
+            gst-plugins-ugly:p
+            gst-libav:p
+            taglib:p
+            imagemagick:p
+            librsvg:p
+            pkgconf:p
+            ntldd:p
+
+      - name: Configure
+        run: |
+          QMAKE=$(command -v qmake-qt5 || command -v qmake) \
+          LRELEASE=$(command -v lrelease-qt5 || command -v lrelease) \
+          ./configure
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Package
+        run: scripts/package-windows.sh "$PWD/dist/TrackDeck-windows"
+
+      - name: Smoke test packaged app
+        run: |
+          # starts Qt from the packaged folder (platform plugin, DLLs) and exits
+          cd dist/TrackDeck-windows/TrackDeck
+          timeout 60 ./TrackDeck.exe --version
+          echo "TrackDeck.exe --version exited with $?"
+          test -f licenses/TrackDeck/LICENSE.GPL3
+          test -f skins/Modern.nzs -o -f skins/modern.nzs
+          ls gstreamer | head -40
+
+      - name: Name artifact
+        id: name
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            label="${GITHUB_REF_NAME#trackdeck-v}"
+          else
+            label="$(git rev-parse --short HEAD)"
+          fi
+          file="TrackDeck-${label}-Windows-x64.zip"
+          mv dist/TrackDeck-windows.zip "dist/$file"
+          sha256sum "dist/$file" | tee "dist/$file.sha256"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.file }}
+          path: |
+            dist/${{ steps.name.outputs.file }}
+            dist/${{ steps.name.outputs.file }}.sha256
+          if-no-files-found: error
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --draft --title "TrackDeck ${GITHUB_REF_NAME#trackdeck-v}" \
+              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`." \
+              || gh release view "$GITHUB_REF_NAME" >/dev/null  # created meanwhile by the other workflow
+          fi
+          gh release upload "$GITHUB_REF_NAME" "dist/${{ steps.name.outputs.file }}" \
+            "dist/${{ steps.name.outputs.file }}.sha256" --clobber

@@ -25,6 +25,11 @@
 #include "tagReaderInterface.h"
 #include "trash.h"
 
+#ifdef Q_OS_WIN
+#include "winIcon.h"
+#include <QProcessEnvironment>
+#endif
+
 #include <QApplication>
 #include <QMenu>
 #include <QMenuBar>

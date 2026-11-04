@@ -79,7 +79,8 @@ jobs:
           # attach to an existing release for this tag, or create a draft one
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release create "$GITHUB_REF_NAME" --draft --title "TrackDeck ${GITHUB_REF_NAME#trackdeck-v}" \
-              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`. Apple Silicon only."
+              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`. Apple Silicon only." \
+              || gh release view "$GITHUB_REF_NAME" >/dev/null  # created meanwhile by the other workflow
           fi
           gh release upload "$GITHUB_REF_NAME" "dist/${{ steps.name.outputs.file }}" \
             "dist/${{ steps.name.outputs.file }}.sha256" --clobber

@@ -8,7 +8,7 @@ unix:QMS_DEST_DIR = $$PROJECT_DIR/i18n
 mac:QMS_DEST_DIR = $$PROJECT_DIR/$${APP_NAME}.app/Contents/MacOS/i18n
 win32:QMS_DEST_DIR = $$PROJECT_DIR/i18n
 
-system($$QMAKE_MKDIR $$fixSlashes($$QMS_DEST_DIR))
+mkpath($$QMS_DEST_DIR) # qmake builtin: works on every platform/shell
 qms.target = $$QMS_DEST_DIR/*.qm
 
 qms.commands = $$LRELEASE $$qms.depends && \
