@@ -1306,6 +1306,142 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
+        <widget class="QWidget" name="visualiserOptions" native="true">
+         <layout class="QFormLayout" name="visualiserOptionsLayout">
+          <property name="fieldGrowthPolicy">
+           <enum>QFormLayout::FieldsStayAtSizeHint</enum>
+          </property>
+          <property name="leftMargin">
+           <number>24</number>
+          </property>
+          <property name="topMargin">
+           <number>2</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>4</number>
+          </property>
+           <item row="0" column="0">
+            <widget class="QLabel" name="visualiserStyleLabel">
+             <property name="text">
+              <string>Style:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="visualiserStyleComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="visualiserDensityLabel">
+             <property name="text">
+              <string>Bars:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="visualiserDensityComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="visualiserSensitivityLabel">
+             <property name="text">
+              <string>Sensitivity:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="visualiserSensitivityComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="visualiserTrebleBoostLabel">
+             <property name="text">
+              <string>Treble boost:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QComboBox" name="visualiserTrebleBoostComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="visualiserFallSpeedLabel">
+             <property name="text">
+              <string>Fall speed:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QComboBox" name="visualiserFallSpeedComboBox">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="visualiserColorsLabel">
+             <property name="text">
+              <string>Colours:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <layout class="QHBoxLayout" name="visualiserColorsLayout">
+             <item>
+            <widget class="QComboBox" name="visualiserColorsComboBox">
+               <property name="sizeAdjustPolicy">
+                <enum>QComboBox::AdjustToContents</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="visualiserGradientFromButton">
+               <property name="toolTip">
+                <string>Colour for the bass end</string>
+               </property>
+               <property name="text">
+                <string>Bass</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="visualiserGradientToButton">
+               <property name="toolTip">
+                <string>Colour for the treble end</string>
+               </property>
+               <property name="text">
+                <string>Treble</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="6" column="1">
+            <widget class="QCheckBox" name="visualiserPeaksCheckBox">
+             <property name="text">
+              <string>Show peak caps</string>
+             </property>
+            </widget>
+           </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_5">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

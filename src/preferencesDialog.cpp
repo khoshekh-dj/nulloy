@@ -67,6 +67,37 @@ static QIcon _swatch(const QColor &color)
     return QIcon(pm);
 }
 
+// Visualiser options: combo box name, setting, (value, label) choices
+struct _VisualiserOption
+{
+    const char *combo;
+    const char *setting;
+    QList<QPair<QString, QString>> choices;
+};
+static const QList<_VisualiserOption> _visualiserOptions = {
+    {"visualiserStyleComboBox", "VisualiserStyle",
+     {{"bars", "Bars"}, {"segments", "LED segments"}, {"mirrored", "Mirrored"},
+      {"curve", "Smooth curve"}}},
+    {"visualiserDensityComboBox", "VisualiserDensity",
+     {{"wide", "Fewer, wider"}, {"normal", "Normal"}, {"narrow", "More, thinner"}}},
+    {"visualiserSensitivityComboBox", "VisualiserSensitivity",
+     {{"low", "Low"}, {"normal", "Normal"}, {"high", "High"}}},
+    {"visualiserTrebleBoostComboBox", "VisualiserTrebleBoost",
+     {{"off", "Off"}, {"normal", "Normal"}, {"strong", "Strong"}}},
+    {"visualiserFallSpeedComboBox", "VisualiserFallSpeed",
+     {{"slow", "Slow"}, {"normal", "Normal"}, {"fast", "Fast"}}},
+    {"visualiserColorsComboBox", "VisualiserColors",
+     {{"waveform", "Follow waveform colours"}, {"accent", "Accent colour"},
+      {"gradient", "Custom gradient"}}},
+};
+
+// a colour button shows its colour as an icon and keeps it in a property
+static void _setButtonColor(QPushButton *button, const QColor &color)
+{
+    button->setIcon(_swatch(color));
+    button->setProperty("color", color.name(QColor::HexRgb).toUpper());
+}
+
 
 using namespace NPluginLoader;
 
@@ -111,6 +142,31 @@ NPreferencesDialog::NPreferencesDialog(NPlayer *player, QWidget *parent) : QDial
     });
     connect(ui.playlistColumnsCheckBox, &QCheckBox::toggled, ui.playlistColumnsList,
             &QWidget::setEnabled);
+
+    // visualiser >>
+    for (const _VisualiserOption &option : _visualiserOptions) {
+        QComboBox *combo = findChild<QComboBox *>(option.combo);
+        for (const auto &choice : option.choices) {
+            combo->addItem(tr(choice.second.toUtf8().constData()), choice.first);
+        }
+    }
+    connect(ui.visualiserCheckBox, &QCheckBox::toggled, ui.visualiserOptions, &QWidget::setEnabled);
+    connect(ui.visualiserColorsComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            [this]() {
+                bool gradient = ui.visualiserColorsComboBox->currentData().toString() == "gradient";
+                ui.visualiserGradientFromButton->setVisible(gradient);
+                ui.visualiserGradientToButton->setVisible(gradient);
+            });
+    for (QPushButton *button : {ui.visualiserGradientFromButton, ui.visualiserGradientToButton}) {
+        connect(button, &QPushButton::clicked, [this, button]() {
+            QColor picked = QColorDialog::getColor(QColor(button->property("color").toString()),
+                                                   this, button->toolTip());
+            if (picked.isValid()) {
+                _setButtonColor(button, picked);
+            }
+        });
+    }
+    // << visualiser
 
     connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked()), this,
             SLOT(saveSettings()));
@@ -569,6 +625,24 @@ void NPreferencesDialog::loadSettings()
     }
     // << waveform colours & accent
 
+    // visualiser >>
+    for (const _VisualiserOption &option : _visualiserOptions) {
+        QComboBox *combo = findChild<QComboBox *>(option.combo);
+        int index = combo->findData(NSettings::instance()->value(option.setting).toString());
+        combo->setCurrentIndex(qMax(0, index));
+    }
+    _setButtonColor(ui.visualiserGradientFromButton,
+                    QColor(NSettings::instance()->value("VisualiserGradientFrom").toString()));
+    _setButtonColor(ui.visualiserGradientToButton,
+                    QColor(NSettings::instance()->value("VisualiserGradientTo").toString()));
+    {
+        bool gradient = ui.visualiserColorsComboBox->currentData().toString() == "gradient";
+        ui.visualiserGradientFromButton->setVisible(gradient);
+        ui.visualiserGradientToButton->setVisible(gradient);
+    }
+    ui.visualiserOptions->setEnabled(ui.visualiserCheckBox->isChecked());
+    // << visualiser
+
     // playlist columns >>
     {
         ui.playlistColumnsList->clear();
@@ -740,6 +814,17 @@ void NPreferencesDialog::saveSettings()
         }
     }
     // << waveform colours & accent
+
+    // visualiser >>
+    for (const _VisualiserOption &option : _visualiserOptions) {
+        NSettings::instance()->setValue(option.setting,
+                                        findChild<QComboBox *>(option.combo)->currentData());
+    }
+    NSettings::instance()->setValue("VisualiserGradientFrom",
+                                    ui.visualiserGradientFromButton->property("color"));
+    NSettings::instance()->setValue("VisualiserGradientTo",
+                                    ui.visualiserGradientToButton->property("color"));
+    // << visualiser
 
     // playlist columns >>
     {

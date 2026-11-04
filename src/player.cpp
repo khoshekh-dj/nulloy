@@ -510,6 +510,17 @@ void NPlayer::applyVisualiserSettings()
         m_spectrumWidget->setColorScheme(m_settings->value("WaveformRgb").toBool(),
                                          m_settings->value("WaveformColorScheme").toString(),
                                          QColor(m_settings->value("AccentColor").toString()));
+        NSpectrumWidget::Appearance look;
+        look.style = m_settings->value("VisualiserStyle").toString();
+        look.density = m_settings->value("VisualiserDensity").toString();
+        look.sensitivity = m_settings->value("VisualiserSensitivity").toString();
+        look.trebleBoost = m_settings->value("VisualiserTrebleBoost").toString();
+        look.fallSpeed = m_settings->value("VisualiserFallSpeed").toString();
+        look.peaks = m_settings->value("VisualiserPeaks").toBool();
+        look.colors = m_settings->value("VisualiserColors").toString();
+        look.gradientFrom = QColor(m_settings->value("VisualiserGradientFrom").toString());
+        look.gradientTo = QColor(m_settings->value("VisualiserGradientTo").toString());
+        m_spectrumWidget->setAppearance(look);
         m_spectrumWidget->setVisible(visualiser);
         if (!visualiser) {
             m_spectrumWidget->clear();
