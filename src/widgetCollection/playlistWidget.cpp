@@ -207,9 +207,11 @@ void NPlaylistWidget::saveColumnWidths()
 
 void NPlaylistWidget::setColumnsMode(bool enable)
 {
-    if (enable == m_columnsMode && (!enable || !m_columnFormats.isEmpty())) {
+    QStringList specs = NSettings::instance()->value("PlaylistColumnsFormat").toStringList();
+    if (enable == m_columnsMode && (!enable || (!m_columnFormats.isEmpty() && specs == m_columnSpecs))) {
         return; // unchanged: keep cached column texts
     }
+    m_columnSpecs = specs;
     m_columnsMode = enable;
     if (enable) {
         loadColumns();
