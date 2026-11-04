@@ -98,7 +98,7 @@ NTrackInfoWidget #MiddleCenter {
 }
 
 #iconLabel {
-	background-image: url(icon.png);
+	border-image: url(icon.png);
 }
 
 QToolButton {
