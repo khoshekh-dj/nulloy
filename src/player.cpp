@@ -48,6 +48,7 @@
 #endif
 #include "utils.h"
 #include "volumeSlider.h"
+#include "spectrumWidget.h"
 #include "waveformSlider.h"
 
 #ifndef _N_NO_SKINS_
@@ -139,6 +140,7 @@ NPlayer::NPlayer()
     trackInfoLayout->addWidget(m_trackInfoWidget);
     m_waveformSlider = m_mainWindow->findChild<NWaveformSlider *>("waveformSlider");
     m_waveformSlider->setLayout(trackInfoLayout);
+    m_spectrumWidget = m_mainWindow->findChild<NSpectrumWidget *>("spectrumWidget"); // optional
 
 #ifdef Q_OS_WIN
     NW7TaskBar::instance()->setWindow(m_mainWindow);
@@ -235,6 +237,10 @@ void NPlayer::connectSignals()
             SLOT(on_playbackEngine_stateChanged(N::PlaybackState)));
     connect(m_playbackEngine, SIGNAL(positionChanged(qreal)), m_waveformSlider,
             SLOT(setValue(qreal)));
+    if (m_spectrumWidget) {
+        connect(m_playbackEngine, SIGNAL(spectrumChanged(const QVector<float> &, int)),
+                m_spectrumWidget, SLOT(setSpectrum(const QVector<float> &, int)));
+    }
     if (QObject *builder = dynamic_cast<QObject *>(NPluginLoader::getPlugin(N::WaveformBuilder))) {
         connect(builder, SIGNAL(bpmDetected(const QString &, qreal)), this,
                 SLOT(handleBpmDetected(const QString &, qreal)));
@@ -494,6 +500,36 @@ void NPlayer::loadSettings()
 
     m_playbackEngine->setVolume(m_settings->value("Volume").toFloat());
     m_volumeSlider->setValue(m_settings->value("Volume").toFloat());
+    applyVisualiserSettings();
+}
+
+void NPlayer::applyVisualiserSettings()
+{
+    bool visualiser = m_spectrumWidget && m_settings->value("Visualiser").toBool();
+    if (m_spectrumWidget) {
+        m_spectrumWidget->setColorScheme(m_settings->value("WaveformRgb").toBool(),
+                                         m_settings->value("WaveformColorScheme").toString(),
+                                         QColor(m_settings->value("AccentColor").toString()));
+        NSpectrumWidget::Appearance look;
+        look.style = m_settings->value("VisualiserStyle").toString();
+        look.density = m_settings->value("VisualiserDensity").toString();
+        look.sensitivity = m_settings->value("VisualiserSensitivity").toString();
+        look.trebleBoost = m_settings->value("VisualiserTrebleBoost").toString();
+        look.fallSpeed = m_settings->value("VisualiserFallSpeed").toString();
+        look.peaks = m_settings->value("VisualiserPeaks").toBool();
+        look.colors = m_settings->value("VisualiserColors").toString();
+        look.gradientFrom = QColor(m_settings->value("VisualiserGradientFrom").toString());
+        look.gradientTo = QColor(m_settings->value("VisualiserGradientTo").toString());
+        look.frameRate = m_settings->value("VisualiserFrameRate").toInt();
+        m_spectrumWidget->setAppearance(look);
+        m_spectrumWidget->setVisible(visualiser);
+        if (!visualiser) {
+            m_spectrumWidget->clear();
+        }
+    }
+    QMetaObject::invokeMethod(m_playbackEngine, "setSpectrumFrameRate",
+                              Q_ARG(int, m_settings->value("VisualiserFrameRate").toInt()));
+    QMetaObject::invokeMethod(m_playbackEngine, "setSpectrumEnabled", Q_ARG(bool, visualiser));
 }
 
 void NPlayer::saveSettings()
@@ -520,6 +556,7 @@ void NPlayer::applySettings()
     updateAmbientImage(); // "AmbientBackground" may have changed
     m_waveformSlider->setColorScheme(m_settings->value("WaveformColorScheme").toString(),
                                      QColor(m_settings->value("AccentColor").toString()));
+    applyVisualiserSettings();
     m_trackInfoWidget->updateFileLabels(m_playbackEngine->currentMedia());
     m_playlistWidget->setColumnsMode(m_settings->value("PlaylistColumns").toBool());
     m_playlistWidget->processVisibleItems();

@@ -474,7 +474,7 @@ QToolTip {
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="headerLayout">
+           <layout class="QHBoxLayout" name="headerLayout" stretch="0,2,3">
             <property name="spacing">
              <number>14</number>
             </property>
@@ -574,6 +574,28 @@ QToolTip {
                </spacer>
               </item>
              </layout>
+            </item>
+            <item>
+             <widget class="NSpectrumWidget" name="spectrumWidget" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>3</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>104</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>104</height>
+               </size>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
