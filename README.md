@@ -2,107 +2,102 @@
 
 # TrackDeck
 
-**TrackDeck** is a music player for DJs, with an RGB waveform, tag-based playlist columns and a modern dark skin. It's based on [Nulloy](https://github.com/nulloy/nulloy) by Sergey Vlasov and is released under the same [GPL-3.0](LICENSE.GPL3) licence.
+**TrackDeck** is a music player for DJs. It has an RGB waveform, a live spectrum visualiser, automatic BPM detection, tag-based playlist columns and a modern dark skin. It's based on [Nulloy](https://github.com/nulloy/nulloy) by Sergey Vlasov and is released under the same [GPL-3.0](LICENSE.GPL3) licence.
 
-**Download:** macOS builds are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases) (Apple Silicon only for now).
+**Download:** builds for **macOS (Apple Silicon)** and **Windows 10/11 (x64)** are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases).
+- macOS: open the `.dmg` and drag TrackDeck to Applications. The app isn't notarized, so the first time, right-click it and choose **Open**.
+- Windows: a portable `.zip`. Unzip it anywhere and run `TrackDeck\TrackDeck.exe`. If SmartScreen warns about it, choose **More info → Run anyway**.
 
 ## Features
-=======
 
 ### Modern skin
-A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. This is the default skin. To switch to another one, use Preferences → Skin, then restart TrackDeck.
+A dark design with large cover art, the title, artist and album, a BPM · kbps · kHz line, a rounded waveform, centred controls and a clean playlist. This is the default skin.
+- **Accent colour:** choose from presets (electric blue, neon green, pink, orange, purple, red, teal) or pick your own in Preferences → Track Information.
+- **Album art as the background:** the current track's cover, blurred and darkened, fills the window behind the player.
+- **Khoshekh skin:** the same layout in a deep teal and cream palette.
+
+To switch skins, use Preferences → General → Skin, then restart TrackDeck.
 
 ![Modern skin](docs/screenshots/modern-skin.png)
 
 ### RGB waveform
-The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. It's on by default. To turn it off, untick Preferences → *Color waveform by frequency*.
+The waveform is coloured by frequency, with bass in red, mids in green and highs in blue. Choose RGB (balanced), Vivid RGB or your accent colour in Preferences → Track Information. You can also untick *Color waveform by frequency* to turn the colours off.
 
 ![RGB waveform](docs/screenshots/rgb-waveform.png)
 
+### Live spectrum visualiser
+A real-time frequency display, like a graphic EQ, to the right of the track info. The bars are timed to what you hear, not to what has just been decoded. Preferences → Visualiser lets you choose:
+- the style: bars, LED segments, mirrored or a smooth curve
+- how many bars, how sensitive they are, how much the treble is boosted, and how fast they fall
+- 30 or 60 frames per second, with or without peak caps
+- colours that follow the waveform, use your accent colour, or a custom bass-to-treble gradient
+
+It uses about 7% of one CPU core at 30 frames per second on an Apple Silicon Mac. To turn it off, untick *Show the live spectrum visualiser*.
+
+### BPM detection
+For tracks without a BPM tag, TrackDeck works out the tempo the first time you play them, using [aubio](https://aubio.org). The result appears in the BPM column and on the track info line, and it's remembered, so each track is analysed only once. Tracks of 15 minutes or longer are skipped, because they're most likely DJ mixes. To turn it off, untick Preferences → Track Information → *Detect BPM for tracks without a BPM tag*.
+
 ### Playlist columns
-The playlist can show Artist, Title, Album, BPM and Duration from your tags, in resizable columns. It's on by default. To turn it off, untick Preferences → *Show playlist as columns*.
+The playlist can show columns from your tags: Artist, Title, Album, Genre, Key, Label, BPM, Year, Track, Bitrate and Duration. In Preferences → Track Information, tick the columns you want and drag them into order. Columns are resizable. To turn them off, untick *Show playlist as columns*.
 
 ![Playlist columns](docs/screenshots/playlist-columns.png)
 
 ### Also
-- **Mac media keys and Now Playing**: F7, F8 and F9, headphone buttons and Control Center can play, pause and skip tracks.
-- **BPM from tags**: add `{%M BPM}` to a waveform section in Preferences.
-- **Crash fix**: blank global shortcuts were registered as the "A" key system-wide, which made typing "a" pop up the player and could crash the app.
-- **Self-contained macOS packaging**: `scripts/package-mac.sh` builds a standalone `.app` and `.dmg` (see [macOS packaging](#macos-packaging) below).
+- **Formats:** MP3, AAC/M4A, Apple Lossless (ALAC), FLAC, WAV, AIFF, Ogg Vorbis, Opus, WMA, AC3 and more. WavPack works on Windows.
+- **Mac media keys and Now Playing:** F7, F8 and F9, headphone buttons and Control Center can play, pause and skip tracks.
+- **Window stays reachable:** if TrackDeck was last closed on a display that's no longer connected, it opens on your main screen.
+- **Dark pop-up menus** in the Modern skin.
+- **Crash fix:** blank global shortcuts were registered as the "A" key system-wide, which made typing "a" pop up the player and could crash it.
 
 ## Credits and licence
 
 - TrackDeck is a fork of [Nulloy](https://github.com/nulloy/nulloy), Copyright (C) 2010-2024 Sergey Vlasov. TrackDeck modifications are copyright (C) 2026 Khoshekh.
-- TrackDeck is free software under the [GNU GPL v3](LICENSE.GPL3). Skins are CC-BY-SA 3.0.
+- TrackDeck is free software under the [GNU GPL v3](LICENSE.GPL3).
+- Skins are CC-BY-SA 3.0. The Modern and Khoshekh skins build on the skin scripts of Nulloy's Metro, Silver and Slim skins by Sergey Vlasov.
+- BPM detection uses [aubio](https://aubio.org) (GPL-3.0).
 - "Nulloy" is the name of the original project. TrackDeck is not affiliated with or endorsed by it.
-- macOS builds bundle Qt, GStreamer, TagLib and their dependencies. Their licences are in `TrackDeck.app/Contents/Resources/Licenses`.
+- The macOS and Windows builds bundle Qt, GStreamer, TagLib, aubio and their dependencies. Their licences are in `TrackDeck.app/Contents/Resources/Licenses` on macOS and in the `licenses` folder on Windows.
 
 ## Build Instructions
 
 <details>
 <summary>Windows</summary>
 
+TrackDeck builds on Windows with [MSYS2](https://www.msys2.org/), the same way the release builds are made.
+
 ### Prerequisites
 
-* Qt 5 offline installer https://www.qt.io/offline-installers/
-* GStreamer 1.0 MinGW 32-bit (runtime and development installers) http://gstreamer.freedesktop.org/download/
-* pkg-config and its dependencies (glib and gettext-runtime) https://download.gnome.org/binaries/win32/dependencies/, https://download.gnome.org/binaries/win32/glib/
-* CMake http://www.cmake.org/
-* TagLib source code https://github.com/taglib/taglib/
-* ImageMagick https://imagemagick.org/script/download.php#windows
-* 7zip http://www.7-zip.org/
+Install MSYS2, open the **MSYS2 UCRT64** shell and install the toolchain and libraries:
 
-Disconnect from the Internet to skip creating Qt account. Run Qt 5 offline installer and select only the following components:
-```
-+ Qt
-  + Qt 5
-    - Qt Prebuilt Components for MinGW 32-bit
-    - Qt Script
-  + Developer and Designer Tools
-    - MinGW 32-bit toolchain
-```
-
-Extract pkg-config and its dependencies into `C:\Downloads\pkg-config`.
-
-Install GStreamer runtime and development packages. Open command prompt and execute:
-```bat
-del C:\gstreamer\1.0\mingw_x86\lib\libstdc++.a
-```
-
-Extract and / or install the rest of the prerequisites.
-
-### Build TagLib
-
-Run Qt MinGW terminal and execute:
-
-```bat
-C:\Downloads\taglib
-cmake.exe -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DZLIB_INCLUDE_DIR=C:\gstreamer\1.0\mingw_x86\include -DCMAKE_INSTALL_PREFIX="."
-mingw32-make
-mingw32-make install
+```sh
+pacman -S --needed make zip git \
+  mingw-w64-ucrt-x86_64-{toolchain,qt5-base,qt5-script,qt5-svg,qt5-tools,qt5-winextras} \
+  mingw-w64-ucrt-x86_64-{gstreamer,gst-plugins-base,gst-plugins-good,gst-plugins-bad,gst-plugins-ugly,gst-libav} \
+  mingw-w64-ucrt-x86_64-{taglib,aubio,imagemagick,librsvg,pkgconf,ntldd,ffmpeg}
 ```
 
 ### Build & Run TrackDeck
 
-In the same terminal execute:
+In the same shell:
 
-```bat
-set PATH=C:\Program Files\7-Zip;%PATH%
-set PATH=C:\gstreamer\1.0\mingw_x86\bin;%PATH%
-set PATH=C:\Downloads\pkg-config\bin;%PATH%
-set PKG_CONFIG_PATH=C:\gstreamer\1.0\mingw_x86\lib\pkgconfig;%PKG_CONFIG_PATH%
-set PKG_CONFIG_PATH=C:\Downloads\taglib\lib\pkgconfig;%PKG_CONFIG_PATH%
-set GST_PLUGIN_PATH=C:\gstreamer\1.0\mingw_x86\lib
-
-cd C:\Downloads\trackdeck
-configure.bat
-mingw32-make
-copy /B /Y C:\gstreamer\1.0\mingw_x86\bin\*.dll .
-del libstdc++-6.dll
-copy /B /Y C:\Downloads\taglib\bin\libtag.dll .
-windeployqt TrackDeck.exe
-TrackDeck.exe
+```sh
+cd trackdeck
+QMAKE=$(command -v qmake-qt5 || command -v qmake) \
+LRELEASE=$(command -v lrelease-qt5 || command -v lrelease) \
+./configure
+make -j"$(nproc)"
 ```
+
+### Windows packaging
+
+To build a portable `TrackDeck` folder and `.zip` that run without MSYS2:
+
+```sh
+scripts/package-windows.sh "$PWD/dist/TrackDeck-windows"
+# -> dist/TrackDeck-windows.zip
+```
+
+The script copies Qt, an audio-only set of GStreamer plugins and every DLL they need, and collects their licences.
 </details>
 
 <details>
@@ -129,7 +124,7 @@ First install either MacPorts or HomeBrew.
 After installing MacPorts:
 
 ```sh
-sudo port install pkgconfig qt5 qt5-qtscript qt5-qttools gstreamer1 gstreamer1-gst-plugins-base taglib ImageMagick librsvg
+sudo port install pkgconfig qt5 qt5-qtscript qt5-qttools gstreamer1 gstreamer1-gst-plugins-base taglib aubio ImageMagick librsvg
 export PATH=/opt/local/libexec/qt5/bin:$PATH
 # install extra GStreamer plugins for more audio formats
 sudo port install gstreamer1-gst-plugins-good gstreamer1-gst-plugins-bad gstreamer1-gst-plugins-ugly
@@ -145,7 +140,7 @@ open TrackDeck.app
 After installing HomeBrew:
 
 ```sh
-brew install pkgconfig qt5 gstreamer gst-plugins-base taglib imagemagick librsvg
+brew install pkgconfig qt5 gstreamer gst-plugins-base taglib aubio imagemagick librsvg
 export PATH=/usr/local/opt/qt/bin:$PATH
 # install extra GStreamer plugins for more audio formats
 brew install gst-plugins-good gst-plugins-bad gst-plugins-ugly
@@ -159,7 +154,7 @@ open TrackDeck.app
 On Apple Silicon, Homebrew installs Qt 5 as `qt@5` under `/opt/homebrew`. Use these steps instead:
 
 ```sh
-brew install qt@5 gstreamer taglib imagemagick librsvg
+brew install qt@5 gstreamer taglib aubio imagemagick librsvg
 export PATH="$(brew --prefix qt@5)/bin:$PATH"
 ./configure
 make
@@ -175,7 +170,7 @@ scripts/package-mac.sh "$PWD/TrackDeck.app" "$PWD/dist/TrackDeck"
 ```
 
 The script:
-- bundles Qt and an audio-only set of GStreamer plugins
+- bundles Qt, aubio and an audio-only set of GStreamer plugins
 - strips local settings and playlists
 - checks that nothing still depends on Homebrew
 - ad-hoc signs the app
@@ -203,7 +198,7 @@ Build and run the `TrackDeck` target.
 #### DEB-based distro
 
 ```sh
-apt install g++ qttools5-dev qtscript5-dev qtbase5-private-dev libqt5x11extras5-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev zip libx11-dev libx11-xcb-dev libtag1-dev imagemagick librsvg2-bin libqt5svg5-dev
+apt install g++ qttools5-dev qtscript5-dev qtbase5-private-dev libqt5x11extras5-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev zip libx11-dev libx11-xcb-dev libtag1-dev libaubio-dev imagemagick librsvg2-bin libqt5svg5-dev
 # install extra GStreamer plugins for more audio formats
 apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
 ```
@@ -211,7 +206,7 @@ apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plug
 #### RPM-based distro
 
 ```sh
-yum install gcc-c++ qt5-qtbase-devel qt5-qttools-devel qt5-qttools-static qt5-qtscript-devel qt5-qtbase-private-devel qt5-linguist gstreamer1-plugins-base-devel gstreamer1-devel zip libX11-devel libxcb-devel taglib-devel ImageMagick librsvg2 qt5-qtsvg-devel
+yum install gcc-c++ qt5-qtbase-devel qt5-qttools-devel qt5-qttools-static qt5-qtscript-devel qt5-qtbase-private-devel qt5-linguist gstreamer1-plugins-base-devel gstreamer1-devel zip libX11-devel libxcb-devel taglib-devel aubio-devel ImageMagick librsvg2 qt5-qtsvg-devel
 # install extra GStreamer plugins for more audio formats
 yum install gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly
 ```
