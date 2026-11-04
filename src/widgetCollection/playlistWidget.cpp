@@ -100,11 +100,13 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_header->hide();
     m_columnsAutoWidth = true;
     m_applyingColumnWidths = false;
+    m_headerPressed = false;
+    m_header->viewport()->installEventFilter(this);
     connect(m_header, &QHeaderView::sectionResized, [this]() {
         viewport()->update();
-        // only a drag on the header counts as the user resizing (the last
-        // section also resizes itself whenever the widget is laid out)
-        if (!m_applyingColumnWidths && (QApplication::mouseButtons() & Qt::LeftButton)) {
+        // only dragging a divider on the header counts as the user resizing
+        // (the last section also resizes itself during layout and window resizes)
+        if (!m_applyingColumnWidths && m_headerPressed) {
             m_columnsAutoWidth = false;
             saveColumnWidths();
         }
@@ -260,6 +262,18 @@ void NPlaylistWidget::changeEvent(QEvent *event)
         }
     }
     QListWidget::changeEvent(event);
+}
+
+bool NPlaylistWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_header->viewport()) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            m_headerPressed = true;
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            m_headerPressed = false;
+        }
+    }
+    return QListWidget::eventFilter(watched, event);
 }
 
 int NPlaylistWidget::columnCount() const
