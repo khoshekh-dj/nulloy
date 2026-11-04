@@ -56,6 +56,7 @@ private:
     QHeaderView *m_header;
     QStandardItemModel *m_headerModel;
     QStringList m_columnFormats;
+    QStringList m_columnSpecs; // PlaylistColumnsFormat the columns were built from
     QList<Qt::Alignment> m_columnAlignments;
     void loadColumns();
     void updateHeaderGeometry();
