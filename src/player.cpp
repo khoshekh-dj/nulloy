@@ -15,6 +15,12 @@
 
 #include "player.h"
 
+#include <QFile>
+
+#include <QDir>
+
+#include <QPainter>
+
 #include "aboutDialog.h"
 #include "action.h"
 #include "actionManager.h"
@@ -504,6 +510,9 @@ void NPlayer::applySettings()
     m_systemTray->setVisible(m_settings->value("TrayIcon").toBool());
     m_trackInfoWidget->loadSettings();
     m_waveformSlider->setRgbMode(m_settings->value("WaveformRgb").toBool());
+    updateAmbientImage(); // "AmbientBackground" may have changed
+    m_waveformSlider->setColorScheme(m_settings->value("WaveformColorScheme").toString(),
+                                     QColor(m_settings->value("AccentColor").toString()));
     m_trackInfoWidget->updateFileLabels(m_playbackEngine->currentMedia());
     m_playlistWidget->setColumnsMode(m_settings->value("PlaylistColumns").toBool());
     m_playlistWidget->processVisibleItems();
@@ -607,6 +616,8 @@ void NPlayer::on_playbackEngine_mediaChanged(const QString &file, int)
 void NPlayer::loadCoverArt(const QString &file)
 {
     if (!m_settings->value("ShowCoverArt").toBool()) {
+        m_currentCover = QImage();
+        updateAmbientImage();
         return;
     }
     QImage image;
@@ -656,6 +667,47 @@ void NPlayer::loadCoverArt(const QString &file)
         m_coverWidget->show();
         m_coverWidget->setPixmap(QPixmap::fromImage(image));
     }
+    m_currentCover = image;
+    updateAmbientImage();
+}
+
+void NPlayer::updateAmbientImage()
+{
+    QString previous = m_ambientImagePath;
+    m_ambientImagePath.clear();
+
+    if (!m_currentCover.isNull() && m_settings->value("AmbientBackground").toBool()) {
+        // cheap, smooth blur: shrink to a few pixels, then scale back up in two
+        // stages (one big jump leaves visible blocks). Fill a large canvas so
+        // the skin can centre it without scaling (plain QWidgets only support
+        // background-image, not a stretched border-image).
+        const QSize canvas(1920, 1200);
+        QImage tiny = m_currentCover.scaled(24, 24, Qt::KeepAspectRatioByExpanding,
+                                            Qt::SmoothTransformation);
+        QImage soft = tiny.scaled(96, 96, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        QImage blurred = soft.scaled(canvas, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)
+                             .convertToFormat(QImage::Format_RGB32);
+        blurred = blurred.copy((blurred.width() - canvas.width()) / 2,
+                               (blurred.height() - canvas.height()) / 2, canvas.width(),
+                               canvas.height());
+        // darken so text and controls stay readable
+        QPainter painter(&blurred);
+        painter.fillRect(blurred.rect(), QColor(10, 12, 16, 95));
+        painter.end();
+
+        // a new name each time: stylesheets cache images by path
+        QString path = QDir::tempPath() + QString("/trackdeck-ambient-%1-%2.jpg")
+                                              .arg(QCoreApplication::applicationPid())
+                                              .arg(++m_ambientImageCounter);
+        if (blurred.save(path, "JPG", 88)) {
+            m_ambientImagePath = path;
+        }
+    }
+
+    if (!previous.isEmpty() && previous != m_ambientImagePath) {
+        QFile::remove(previous);
+    }
+    emit ambientImageChanged(m_ambientImagePath);
 }
 
 void NPlayer::on_playbackEngine_mediaFailed(const QString &, int)

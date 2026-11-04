@@ -35,6 +35,8 @@
 
 #include <QApplication>
 #include <QGroupBox>
+#include <QColorDialog>
+#include <QComboBox>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
@@ -44,6 +46,27 @@
 #include <QTextBrowser>
 #include <QTextCodec>
 #include <QVBoxLayout>
+
+// Waveform colour schemes (setting value, label)
+static const QList<QPair<QString, QString>> _waveformSchemes = {
+    {"rgb", "RGB (balanced)"},
+    {"vivid", "Vivid RGB"},
+    {"accent", "Accent colour"},
+};
+// Accent colour presets (hex, label)
+static const QList<QPair<QString, QString>> _accentPresets = {
+    {"#3D8BFF", "Electric blue"}, {"#1ED760", "Neon green"}, {"#FF3D9A", "Pink"},
+    {"#FF8A3D", "Orange"},        {"#9B5CFF", "Purple"},     {"#FF4D5E", "Red"},
+    {"#22C3C3", "Teal"},
+};
+
+static QIcon _swatch(const QColor &color)
+{
+    QPixmap pm(14, 14);
+    pm.fill(color);
+    return QIcon(pm);
+}
+
 
 using namespace NPluginLoader;
 
@@ -62,6 +85,30 @@ NPreferencesDialog::NPreferencesDialog(NPlayer *player, QWidget *parent) : QDial
     m_player = player;
 
     ui.setupUi(this);
+    for (const auto &scheme : _waveformSchemes) {
+        ui.waveformColorSchemeComboBox->addItem(scheme.second, scheme.first);
+    }
+    connect(ui.waveformRgbCheckBox, &QCheckBox::toggled, ui.waveformColorSchemeComboBox,
+            &QWidget::setEnabled);
+    // "Custom..." opens a colour picker and becomes a regular entry
+    connect(ui.accentColorComboBox, QOverload<int>::of(&QComboBox::activated), [this](int index) {
+        if (ui.accentColorComboBox->itemData(index).toString() != "custom") {
+            return;
+        }
+        QColor current(NSettings::instance()->value("AccentColor").toString());
+        QColor picked = QColorDialog::getColor(current, this, tr("Accent colour"));
+        if (!picked.isValid()) {
+            ui.accentColorComboBox->setCurrentIndex(0);
+            return;
+        }
+        QString hex = picked.name(QColor::HexRgb).toUpper();
+        int existing = ui.accentColorComboBox->findData(hex);
+        if (existing < 0) {
+            ui.accentColorComboBox->insertItem(index, _swatch(picked), hex, hex);
+            existing = index;
+        }
+        ui.accentColorComboBox->setCurrentIndex(existing);
+    });
     connect(ui.playlistColumnsCheckBox, &QCheckBox::toggled, ui.playlistColumnsList,
             &QWidget::setEnabled);
 
@@ -502,6 +549,26 @@ void NPreferencesDialog::loadSettings()
     ui.waveformTrackInfoTable->setMaximumHeight(height);
     // << track info overlay
 
+    // waveform colours & accent >>
+    {
+        int scheme = ui.waveformColorSchemeComboBox->findData(
+            NSettings::instance()->value("WaveformColorScheme").toString());
+        ui.waveformColorSchemeComboBox->setCurrentIndex(qMax(0, scheme));
+        ui.waveformColorSchemeComboBox->setEnabled(ui.waveformRgbCheckBox->isChecked());
+
+        QString accent = NSettings::instance()->value("AccentColor").toString().toUpper();
+        ui.accentColorComboBox->clear();
+        for (const auto &preset : _accentPresets) {
+            ui.accentColorComboBox->addItem(_swatch(QColor(preset.first)), preset.second, preset.first);
+        }
+        if (ui.accentColorComboBox->findData(accent) < 0 && QColor(accent).isValid()) {
+            ui.accentColorComboBox->addItem(_swatch(QColor(accent)), accent, accent);
+        }
+        ui.accentColorComboBox->addItem(tr("Custom..."), "custom");
+        ui.accentColorComboBox->setCurrentIndex(qMax(0, ui.accentColorComboBox->findData(accent)));
+    }
+    // << waveform colours & accent
+
     // playlist columns >>
     {
         ui.playlistColumnsList->clear();
@@ -662,6 +729,17 @@ void NPreferencesDialog::saveSettings()
         }
     }
     // << track info overlay
+
+    // waveform colours & accent >>
+    NSettings::instance()->setValue("WaveformColorScheme",
+                                    ui.waveformColorSchemeComboBox->currentData().toString());
+    {
+        QString accent = ui.accentColorComboBox->currentData().toString();
+        if (QColor(accent).isValid()) {
+            NSettings::instance()->setValue("AccentColor", accent);
+        }
+    }
+    // << waveform colours & accent
 
     // playlist columns >>
     {

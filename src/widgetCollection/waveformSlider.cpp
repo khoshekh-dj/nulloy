@@ -49,6 +49,8 @@ NWaveformSlider::NWaveformSlider(QWidget *parent) : QAbstractSlider(parent)
     m_fileDropBorderColor = QColor(Qt::transparent);
     m_fileDropBackground = QBrush(Qt::NoBrush);
     m_rgbMode = NSettings::instance()->value("WaveformRgb").toBool();
+    m_colorScheme = NSettings::instance()->value("WaveformColorScheme").toString();
+    m_accentColor = QColor(NSettings::instance()->value("AccentColor").toString());
 
     setMinimum(0);
     setMaximum(10000);
@@ -265,19 +267,55 @@ void NWaveformSlider::drawRgbWave(QImage &image)
         low /= maxLow;
         mid /= maxMid;
         high /= maxHigh;
-        qreal strongest = qMax(low, qMax(mid, high));
-        QColor color;
-        if (strongest > 0) {
-            color.setRgbF(low / strongest, mid / strongest, high / strongest);
-        } else {
-            color = QColor(Qt::darkGray);
-        }
+        QColor color = bandColor(low, mid, high);
 
         pen.setColor(color);
         painter.setPen(pen);
         qreal x = (c + 0.5) / dpr;
         painter.drawLine(QPointF(x, (1 + neg) * halfHeight), QPointF(x, (1 + pos) * halfHeight));
     }
+}
+
+// low/mid/high are band levels normalised to 0..1
+QColor NWaveformSlider::bandColor(qreal low, qreal mid, qreal high) const
+{
+    qreal strongest = qMax(low, qMax(mid, high));
+    if (strongest <= 0) {
+        return QColor(Qt::darkGray);
+    }
+    qreal r = low / strongest, g = mid / strongest, b = high / strongest;
+
+    if (m_colorScheme == "vivid") {
+        // stretch so the weakest band drops to 0: fully saturated hues
+        qreal weakest = qMin(r, qMin(g, b));
+        if (1.0 - weakest > 0.05) {
+            r = (r - weakest) / (1.0 - weakest);
+            g = (g - weakest) / (1.0 - weakest);
+            b = (b - weakest) / (1.0 - weakest);
+        }
+        return QColor::fromRgbF(r, g, b);
+    }
+
+    if (m_colorScheme == "accent" && m_accentColor.isValid()) {
+        // accent colour, brighter (towards white) where there's more top end
+        qreal t = 0.7 * high / (low + mid + high);
+        return QColor::fromRgbF(m_accentColor.redF() + (1 - m_accentColor.redF()) * t,
+                                m_accentColor.greenF() + (1 - m_accentColor.greenF()) * t,
+                                m_accentColor.blueF() + (1 - m_accentColor.blueF()) * t);
+    }
+
+    return QColor::fromRgbF(r, g, b); // "rgb": balanced, as before
+}
+
+void NWaveformSlider::setColorScheme(const QString &scheme, const QColor &accent)
+{
+    if (scheme == m_colorScheme && accent == m_accentColor) {
+        return;
+    }
+    m_colorScheme = scheme;
+    m_accentColor = accent;
+    m_needsUpdate = true;
+    checkForUpdate();
 }
 
 void NWaveformSlider::setRgbMode(bool enabled)

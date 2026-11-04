@@ -3,12 +3,12 @@ mac:SKIN_DEST_DIR = $$PROJECT_DIR/$${APP_NAME}.app/Contents/MacOS/skins
 win32:SKIN_DEST_DIR = $$PROJECT_DIR/Skins
 mkpath($$SKIN_DEST_DIR) # qmake builtin: works on every platform/shell
 
-unix:SKINS =  metro modern silver slim
-win32:SKINS = Metro Modern Silver Slim
+unix:SKINS =  khoshekh metro modern silver slim
+win32:SKINS = Khoshekh Metro Modern Silver Slim
 for(skin, SKINS) {
     _depends = $$SRC_DIR/skins/$$lower($${skin})
     _target = $$SKIN_DEST_DIR/$${skin}.nzs
-    _commands = $$sprintf($$QMAKE_MKDIR_CMD, $$shell_path($$SKIN_DEST_DIR)) && zip -j -X -x\*design.svg $$_target $$_depends/*
+    _commands = $$sprintf($$QMAKE_MKDIR_CMD, $$shell_path($$SKIN_DEST_DIR)) && zip -FS -j -X -x\*design.svg $$_target $$_depends/*
     win32:!unix_mingw:_commands = 7z a -tzip -w$$_depends -x\!design.svg $$_target $$_depends/*
     eval($${skin}.depends = $$_depends/*)
     eval($${skin}.target = $$_target)
