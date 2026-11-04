@@ -4,6 +4,11 @@
 
 This fork adds the features below to [Nulloy](https://github.com/nulloy/nulloy). A macOS build is available in the **[latest release](https://github.com/nmarchini/nulloy/releases/latest)** (Apple Silicon only).
 
+### Modern skin
+A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. Choose it in Preferences → Skin → *Modern*, then restart Nulloy.
+
+![Modern skin](docs/screenshots/modern-skin.png)
+
 ### RGB waveform
 The waveform is coloured by frequency content, with bass in red, mids in green and highs in blue. Turn it on in Preferences → *Color waveform by frequency*.
 
