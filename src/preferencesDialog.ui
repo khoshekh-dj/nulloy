@@ -1231,6 +1231,67 @@ padding: 5px;</string>
         </widget>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="waveformColorSchemeLayout">
+         <item>
+          <widget class="QLabel" name="waveformColorSchemeLabel">
+           <property name="text">
+            <string>Waveform colours:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="waveformColorSchemeComboBox"/>
+         </item>
+         <item>
+          <spacer name="waveformColorSchemeLayoutSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="accentColorLayout">
+         <item>
+          <widget class="QLabel" name="accentColorLabel">
+           <property name="text">
+            <string>Accent colour:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="accentColorComboBox"/>
+         </item>
+         <item>
+          <spacer name="accentColorLayoutSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="ambientBackgroundCheckBox">
+         <property name="text">
+          <string>Use album art as the window background (Modern skin)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_5">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

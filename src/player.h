@@ -120,9 +120,19 @@ public slots:
     // For skin scripts: format track info (e.g. "%t", "%a", "{%M BPM}") for the
     // current media. Returns an empty string when nothing is loaded.
     QString trackInfo(const QString &format);
+    // For skin scripts: path of a blurred, darkened copy of the current cover
+    // (empty when there's no cover or the feature is off)
+    QString ambientImage() const { return m_ambientImagePath; }
+
+signals:
+    void ambientImageChanged(const QString &path);
 
 private:
     NTrackInfoReader *m_skinTrackInfoReader;
+    QImage m_currentCover;
+    QString m_ambientImagePath;
+    int m_ambientImageCounter = 0;
+    void updateAmbientImage();
 };
 
 #endif
