@@ -1,7 +1,7 @@
 unix:SKIN_DEST_DIR = $$PROJECT_DIR/skins
 mac:SKIN_DEST_DIR = $$PROJECT_DIR/$${APP_NAME}.app/Contents/MacOS/skins
 win32:SKIN_DEST_DIR = $$PROJECT_DIR/Skins
-system($$QMAKE_MKDIR $$fixSlashes($$SKIN_DEST_DIR))
+mkpath($$SKIN_DEST_DIR) # qmake builtin: works on every platform/shell
 
 unix:SKINS =  metro modern silver slim
 win32:SKINS = Metro Modern Silver Slim

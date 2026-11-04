@@ -87,7 +87,9 @@ system($$ico.commands)
 win32 {
     file_ico.depends = $$SRC_DIR/icons/file.svg $$SRC_DIR/icons/icon.svg
     file_ico.target = $$TMP_DIR/file.ico
-    file_ico.commands = $$COMPOSITE_CMD \\( $$SRC_DIR/icons/icon.svg -resize 50% -gravity center \\) $$SRC_DIR/icons/file.svg -define icon:auto-resize $$file_ico.target
+    # two steps instead of "\\( ... \\)" grouping, which needs a POSIX shell
+    file_ico.commands = $$CONVERT_CMD $$SRC_DIR/icons/icon.svg -resize 50% $$TMP_DIR/file_overlay.png && \
+                        $$COMPOSITE_CMD -gravity center $$TMP_DIR/file_overlay.png $$SRC_DIR/icons/file.svg -define icon:auto-resize $$file_ico.target
     PRE_TARGETDEPS += $$file_ico.target
     QMAKE_EXTRA_TARGETS += file_ico
     system($$file_ico.commands)
