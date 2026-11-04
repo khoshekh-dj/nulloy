@@ -89,6 +89,12 @@ echo -n > $QMAKE_CACHE
 
 cd "$(dirname "$0")"
 PROJECT_DIR=$(pwd)
+# MSYS2/MinGW: use Windows-style paths (D:/...) in the qmake cache; native
+# tools such as ar read object lists from files, where MSYS doesn't translate
+# /d/... paths
+if [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* ]]; then
+    PROJECT_DIR=$(pwd -W)
+fi
 echo "PROJECT_DIR = $PROJECT_DIR" >> $QMAKE_CACHE
 
 echo "SRC_DIR = $PROJECT_DIR/src" >> $QMAKE_CACHE
