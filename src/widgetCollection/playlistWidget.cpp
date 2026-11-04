@@ -16,13 +16,17 @@
 #include "playlistWidget.h"
 
 #include <QApplication>
+#include <QCollator>
 #include <QContextMenuEvent>
 #include <QDrag>
 #include <QElapsedTimer>
 #include <QHeaderView>
 #include <QMap>
 #include <QScrollBar>
+#include <QRegularExpression>
 #include <QStandardItemModel>
+
+#include <algorithm>
 
 #include "action.h"
 #include "playbackEngineInterface.h"
@@ -92,7 +96,7 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_header = new QHeaderView(Qt::Horizontal, this);
     m_header->setModel(m_headerModel);
     m_header->setSectionsMovable(false);
-    m_header->setSectionsClickable(false);
+    m_header->setSectionsClickable(true);
     m_header->setHighlightSections(false);
     m_header->setStretchLastSection(true);
     m_header->setSectionResizeMode(QHeaderView::Interactive);
@@ -101,7 +105,10 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_columnsAutoWidth = true;
     m_applyingColumnWidths = false;
     m_headerPressed = false;
+    m_sortColumn = -1;
+    m_sortOrder = Qt::AscendingOrder;
     m_header->viewport()->installEventFilter(this);
+    connect(m_header, &QHeaderView::sectionClicked, this, &NPlaylistWidget::sortByColumn);
     connect(m_header, &QHeaderView::sectionResized, [this]() {
         viewport()->update();
         // only dragging a divider on the header counts as the user resizing
@@ -133,6 +140,8 @@ void NPlaylistWidget::loadColumns()
         m_columnAlignments << align;
     }
 
+    m_headerLabels = headers;
+    clearSortState(); // column positions may have changed
     m_headerModel->clear();
     m_headerModel->setColumnCount(headers.size());
     m_headerModel->setHorizontalHeaderLabels(headers);
@@ -377,6 +386,7 @@ void NPlaylistWidget::contextMenuEvent(QContextMenuEvent *event)
 
 void NPlaylistWidget::removeFiles(const QStringList &files)
 {
+    clearSortState();
     QList<int> rowsToRemove;
     for (size_t row = 0; row < count(); ++row) {
         if (files.contains(item(row)->data(N::PathRole).toString())) {
@@ -394,6 +404,7 @@ void NPlaylistWidget::removeFiles(const QStringList &files)
 
 void NPlaylistWidget::removeSelected()
 {
+    clearSortState();
     int firstSelectedRow = count() - 1; // set to last row
     bool playingItemRemoved = false;
     foreach (QListWidgetItem *item, selectedItems()) {
@@ -640,6 +651,7 @@ void NPlaylistWidget::addItem(NPlaylistWidgetItem *item)
 
 void NPlaylistWidget::addFiles(const QStringList &files)
 {
+    clearSortState();
     foreach (QString path, files)
         addItem(new NPlaylistWidgetItem(QFileInfo(path)));
 
@@ -651,6 +663,7 @@ void NPlaylistWidget::addFiles(const QStringList &files)
 
 void NPlaylistWidget::addItems(const QList<NPlaylistDataItem> &dataItems)
 {
+    clearSortState();
     foreach (NPlaylistDataItem dataItem, dataItems)
         addItem(new NPlaylistWidgetItem(dataItem));
 
@@ -662,6 +675,7 @@ void NPlaylistWidget::addItems(const QList<NPlaylistDataItem> &dataItems)
 
 void NPlaylistWidget::setFiles(const QStringList &files)
 {
+    clearSortState();
     clear();
     m_playingItem = NULL;
     foreach (QString path, files)
@@ -675,6 +689,7 @@ void NPlaylistWidget::setFiles(const QStringList &files)
 
 void NPlaylistWidget::setItems(const QList<NPlaylistDataItem> &dataItems)
 {
+    clearSortState();
     clear();
     m_playingItem = NULL;
 
@@ -689,6 +704,7 @@ void NPlaylistWidget::setItems(const QList<NPlaylistDataItem> &dataItems)
 
 bool NPlaylistWidget::setPlaylist(const QString &file)
 {
+    clearSortState();
     clear();
     m_playingItem = NULL;
 
@@ -741,6 +757,7 @@ void NPlaylistWidget::rowsInserted(const QModelIndex &parent, int start, int end
 
 void NPlaylistWidget::shufflePlaylist()
 {
+    clearSortState();
     QList<QListWidgetItem *> items;
     for (int i = 0; i < count(); ++i) {
         items.append(takeItem(0));
@@ -862,6 +879,7 @@ void NPlaylistWidget::paintEvent(QPaintEvent *e)
 // DRAG & DROP >>
 bool NPlaylistWidget::dropMimeData(int index, const QMimeData *data, Qt::DropAction action)
 {
+    clearSortState();
     if (action == Qt::MoveAction && m_dragStart == DragStartInside) { // moving within playlist
         updateTrackIndexes();
         emit itemsChanged();
@@ -952,6 +970,7 @@ void NPlaylistWidget::mouseMoveEvent(QMouseEvent *event)
 
 void NPlaylistWidget::dropEvent(QDropEvent *event)
 {
+    clearSortState();
     if (event->source()) { // moving within playlist
         m_dragStart = DragStartInside;
     } else { // dropping from file manager
@@ -1058,3 +1077,274 @@ void NPlaylistWidget::setFileDropRadius(int radius)
     m_fileDropRadius = radius;
 }
 // << STYLESHEET PROPERTIES
+
+void NPlaylistWidget::refreshItemsForFile(const QString &file)
+{
+    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+    for (int row = 0; row < count(); ++row) {
+        NPlaylistWidgetItem *item = itemAtRow(row);
+        if (item && item->data(N::PathRole).toString() == file) {
+            refreshItemData(item, titleFormat, true);
+        }
+    }
+    viewport()->update();
+}
+
+// Sorting by column >>
+
+namespace
+{
+enum SortKind { SortText, SortNumber, SortDuration, SortKey };
+
+// what a column holds, judged from its format (e.g. "%M" is BPM)
+SortKind sortKindForFormat(const QString &format)
+{
+    if (format.contains("%d") || format.contains("%D")) {
+        return SortDuration;
+    }
+    if (format.contains("%k")) {
+        return SortKey;
+    }
+    for (const char *tag : {"%M", "%y", "%n", "%B", "%s", "%b", "%C"}) {
+        if (format.contains(tag)) {
+            return SortNumber;
+        }
+    }
+    return SortText;
+}
+
+// "6:25" or "1:02:03" -> seconds; -1 if not a time
+double parseDuration(const QString &text)
+{
+    QStringList parts = text.trimmed().split(':');
+    if (parts.size() < 2 || parts.size() > 3) {
+        return -1;
+    }
+    double seconds = 0;
+    for (const QString &part : parts) {
+        bool ok = false;
+        int value = part.toInt(&ok);
+        if (!ok) {
+            return -1;
+        }
+        seconds = seconds * 60 + value;
+    }
+    return seconds;
+}
+
+// first number in the text ("320 kbps" -> 320); NaN-free: -1 if none
+double parseNumber(const QString &text)
+{
+    static const QRegularExpression number("[-+]?\\d+(?:[.,]\\d+)?");
+    QRegularExpressionMatch m = number.match(text);
+    if (!m.hasMatch()) {
+        return -1;
+    }
+    return m.captured(0).replace(',', '.').toDouble();
+}
+
+// Position on the Camelot wheel: 1A, 1B, 2A ... 12B (A minor, B major), so
+// harmonically related keys sort next to each other. Accepts Camelot ("8A"),
+// Open Key ("1m", "6d") and classic names ("Am", "A minor", "F#", "Gbm").
+// -1 if unrecognised.
+int camelotIndex(const QString &rawKey)
+{
+    QString key = rawKey.trimmed();
+    if (key.isEmpty()) {
+        return -1;
+    }
+
+    static const QRegularExpression camelot("^(\\d{1,2})\\s*([ABab])$");
+    QRegularExpressionMatch m = camelot.match(key);
+    if (m.hasMatch()) {
+        int n = m.captured(1).toInt();
+        if (n >= 1 && n <= 12) {
+            return (n - 1) * 2 + (m.captured(2).toUpper() == "B" ? 1 : 0);
+        }
+    }
+    static const QRegularExpression openKey("^(\\d{1,2})\\s*([mdMD])$");
+    m = openKey.match(key);
+    if (m.hasMatch()) {
+        int n = m.captured(1).toInt();
+        if (n >= 1 && n <= 12) {
+            int camelotNumber = (n - 1 + 7) % 12 + 1; // 1m = 8A (A minor), 1d = 8B (C major)
+            return (camelotNumber - 1) * 2 + (m.captured(2).toLower() == "d" ? 1 : 0);
+        }
+    }
+
+    // classic notation: note name, optional #/b, then minor/major marker
+    static const QRegularExpression classic(
+        "^([A-Ga-g])\\s*([#♯b♭]?)\\s*(m|min|minor|maj|major|M)?$");
+    m = classic.match(key);
+    if (!m.hasMatch()) {
+        return -1;
+    }
+    static const QMap<QString, int> semitone = {{"C", 0}, {"D", 2}, {"E", 4}, {"F", 5},
+                                                {"G", 7}, {"A", 9}, {"B", 11}};
+    int note = semitone.value(m.captured(1).toUpper());
+    QString accidental = m.captured(2);
+    if (accidental == "#" || accidental == "♯") {
+        note += 1;
+    } else if (accidental == "b" || accidental == "♭") {
+        note -= 1;
+    }
+    note = (note + 12) % 12;
+    QString quality = m.captured(3);
+    bool minor = quality == "m" || quality.startsWith("min");
+    // Camelot numbers by semitone: majors are B, minors are A
+    static const int majorNumber[12] = {8, 3, 10, 5, 12, 7, 2, 9, 4, 11, 6, 1};  // C, C#, D ...
+    static const int minorNumber[12] = {5, 12, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10};  // Cm, C#m ...
+    int n = minor ? minorNumber[note] : majorNumber[note];
+    return (n - 1) * 2 + (minor ? 0 : 1);
+}
+} // namespace
+
+void NPlaylistWidget::updateSortIndicator()
+{
+    for (int i = 0; i < m_headerLabels.size(); ++i) {
+        QString label = m_headerLabels.at(i);
+        if (i == m_sortColumn) {
+            QString arrow = m_sortOrder == Qt::AscendingOrder ? QString::fromUtf8("\u25B2")
+                                                              : QString::fromUtf8("\u25BC");
+            // keep the arrow on the inner side of right-aligned columns
+            label = m_columnAlignments.value(i) & Qt::AlignRight ? arrow + " " + label
+                                                                  : label + " " + arrow;
+        }
+        m_headerModel->setHeaderData(i, Qt::Horizontal, label, Qt::DisplayRole);
+    }
+}
+
+void NPlaylistWidget::clearSortState()
+{
+    m_presortOrder.clear();
+    if (m_sortColumn != -1) {
+        m_sortColumn = -1;
+        updateSortIndicator();
+    }
+}
+
+void NPlaylistWidget::applyOrder(const QList<QListWidgetItem *> &order)
+{
+    QListWidgetItem *current = currentItem();
+    QList<QListWidgetItem *> selected = selectedItems();
+    while (count() > 0) {
+        takeItem(0);
+    }
+    for (QListWidgetItem *item : order) {
+        QListWidget::addItem(item);
+    }
+    for (QListWidgetItem *item : selected) {
+        item->setSelected(true);
+    }
+    if (current) {
+        setCurrentItem(current, QItemSelectionModel::NoUpdate);
+    }
+    updateTrackIndexes();
+    processVisibleItems();
+    if (m_playingItem) {
+        scrollToItem(m_playingItem);
+    } else if (current) {
+        scrollToItem(current);
+    }
+    viewport()->update();
+    emit itemsChanged(); // the new order is saved with the playlist
+}
+
+void NPlaylistWidget::sortByColumn(int column)
+{
+    if (!m_columnsMode || column < 0 || column >= m_columnFormats.size() || count() < 2) {
+        return;
+    }
+
+    // clicks cycle: ascending -> descending -> back to the order before sorting
+    if (column == m_sortColumn && m_sortOrder == Qt::DescendingOrder) {
+        QList<QListWidgetItem *> original = m_presortOrder;
+        m_presortOrder.clear();
+        m_sortColumn = -1;
+        updateSortIndicator();
+        if (original.size() == count()) {
+            applyOrder(original);
+        }
+        return;
+    }
+    Qt::SortOrder order = column == m_sortColumn ? Qt::DescendingOrder : Qt::AscendingOrder;
+
+    QList<QListWidgetItem *> items;
+    for (int i = 0; i < count(); ++i) {
+        items << item(i);
+    }
+    if (m_sortColumn == -1) {
+        m_presortOrder = items;
+    }
+
+    // every row needs its column values, not only the visible ones
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+    for (QListWidgetItem *item : items) {
+        refreshItemData(static_cast<NPlaylistWidgetItem *>(item), titleFormat);
+    }
+
+    SortKind kind = sortKindForFormat(m_columnFormats.at(column));
+    struct Entry
+    {
+        QListWidgetItem *item;
+        QString text;
+        double value; // numbers, durations, keys; -1 = no usable value
+    };
+    QVector<Entry> entries;
+    entries.reserve(items.size());
+    for (QListWidgetItem *item : items) {
+        QString text = item->data(N::ColumnsRole).toStringList().value(column).trimmed();
+        double value = -1;
+        switch (kind) {
+            case SortNumber:
+                value = parseNumber(text);
+                break;
+            case SortDuration:
+                value = parseDuration(text);
+                break;
+            case SortKey:
+                value = camelotIndex(text);
+                break;
+            case SortText:
+                break;
+        }
+        entries.append({item, text, value});
+    }
+
+    QCollator collator;
+    collator.setNumericMode(true); // "Track 2" before "Track 10"
+    collator.setCaseSensitivity(Qt::CaseInsensitive);
+    bool ascending = order == Qt::AscendingOrder;
+
+    std::stable_sort(entries.begin(), entries.end(), [&](const Entry &a, const Entry &b) {
+        // empty values go last in both directions
+        bool aEmpty = a.text.isEmpty(), bEmpty = b.text.isEmpty();
+        if (aEmpty != bEmpty) {
+            return bEmpty;
+        }
+        if (aEmpty) {
+            return false;
+        }
+        int cmp;
+        if (kind != SortText && a.value >= 0 && b.value >= 0) {
+            cmp = a.value < b.value ? -1 : (a.value > b.value ? 1 : 0);
+        } else if (kind != SortText && (a.value >= 0) != (b.value >= 0)) {
+            return a.value >= 0; // unparseable values after the real ones
+        } else {
+            cmp = collator.compare(a.text, b.text);
+        }
+        return ascending ? cmp < 0 : cmp > 0;
+    });
+    QApplication::restoreOverrideCursor();
+
+    QList<QListWidgetItem *> sorted;
+    for (const Entry &e : entries) {
+        sorted << e.item;
+    }
+    m_sortColumn = column;
+    m_sortOrder = order;
+    updateSortIndicator();
+    applyOrder(sorted);
+}
+// << Sorting by column

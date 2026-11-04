@@ -45,6 +45,8 @@ static OSStatus _on_default_output_changed(AudioObjectID, UInt32, const AudioObj
 #define LONG_TICK_MSEC 100
 #define STATE_CHANGE_DEBOUNCE_MSEC 50
 #define GST_BUS_POP_MSEC 50
+#define GST_BUS_POP_SPECTRUM_MSEC 15 // poll faster while the visualiser is on
+#define SPECTRUM_BANDS 1024          // ~21.5 Hz per band at 44.1 kHz
 
 static void _on_about_to_finish(GstElement *, gpointer userData)
 {
@@ -88,6 +90,16 @@ void NPlaybackEngineGStreamer::init()
     m_playbin = gst_element_factory_make("playbin", NULL);
     g_signal_connect(m_playbin, "about-to-finish", G_CALLBACK(_on_about_to_finish), this);
     gst_element_add_property_notify_watch(m_playbin, "volume", TRUE);
+
+    m_spectrumEnabled = false;
+    m_spectrumRate = 0;
+    m_spectrum = gst_element_factory_make("spectrum", NULL);
+    if (m_spectrum) {
+        g_object_set(m_spectrum, "bands", SPECTRUM_BANDS, "threshold", -80, "interval",
+                     (guint64)(GST_SECOND / 30), "post-messages", FALSE, "message-magnitude",
+                     TRUE, "message-phase", FALSE, NULL);
+        g_object_set(m_playbin, "audio-filter", m_spectrum, NULL);
+    }
 
     // FIXME: https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad/-/issues/1798
     //m_pitchElement = gst_element_factory_make("pitch", NULL);
@@ -157,7 +169,10 @@ void NPlaybackEngineGStreamer::init()
         GstMessage *msg;
         while ((msg = gst_bus_pop(bus)) != NULL) {
             processGstMessage(msg);
+            gst_message_unref(msg);
         }
+        gst_object_unref(bus);
+        releaseSpectrum();
     });
 
     m_init = true;
@@ -251,6 +266,7 @@ bool NPlaybackEngineGStreamer::gstSetFile(const QString &file, int context, bool
 
 void NPlaybackEngineGStreamer::setMedia(const QString &file, int context)
 {
+    clearSpectrum();
     m_crossfading = false;
     m_position = 0.0;
     m_nextMediaRequestBlock = true;
@@ -309,6 +325,7 @@ qreal NPlaybackEngineGStreamer::volume() const
 
 void NPlaybackEngineGStreamer::setPosition(qreal pos)
 {
+    clearSpectrum();
     if (!hasMedia() || pos < 0.0 || pos > 1.0) {
         return;
     }
@@ -327,6 +344,7 @@ void NPlaybackEngineGStreamer::setPosition(qreal pos)
 
 void NPlaybackEngineGStreamer::jump(qint64 msec)
 {
+    clearSpectrum();
     if (!hasMedia()) {
         return;
     }
@@ -365,6 +383,7 @@ void NPlaybackEngineGStreamer::play()
 
 void NPlaybackEngineGStreamer::pause()
 {
+    clearSpectrum();
     if (!hasMedia()) {
         return;
     }
@@ -382,6 +401,7 @@ void NPlaybackEngineGStreamer::pause()
 
 void NPlaybackEngineGStreamer::stop()
 {
+    clearSpectrum();
     m_crossfading = false;
     m_nextMediaRequestBlock = true;
     gst_element_set_state(m_playbin, GST_STATE_NULL);
@@ -435,6 +455,10 @@ void NPlaybackEngineGStreamer::processGstMessage(GstMessage *msg)
             break;
         }
         case GST_MESSAGE_ELEMENT: {
+            if (m_spectrum && GST_MESSAGE_SRC(msg) == GST_OBJECT(m_spectrum)) {
+                queueSpectrum(msg);
+                break;
+            }
             if (gst_is_missing_plugin_message(msg)) {
                 QString str = tr("Missing GStreamer plugin:<br/>");
                 gchar *detail = gst_missing_plugin_message_get_installer_detail(msg);
@@ -549,4 +573,105 @@ void NPlaybackEngineGStreamer::_emitNextMediaRequest()
 bool NPlaybackEngineGStreamer::_nextMediaRequestBlocked()
 {
     return m_nextMediaRequestBlock;
+}
+
+void NPlaybackEngineGStreamer::setSpectrumEnabled(bool enabled)
+{
+    m_spectrumEnabled = enabled && m_spectrum;
+    if (m_spectrum) {
+        g_object_set(m_spectrum, "post-messages", m_spectrumEnabled ? TRUE : FALSE, NULL);
+    }
+    m_gstBusPopTimer->setInterval(m_spectrumEnabled ? GST_BUS_POP_SPECTRUM_MSEC
+                                                    : GST_BUS_POP_MSEC);
+    if (!m_spectrumEnabled) {
+        clearSpectrum();
+    }
+}
+
+void NPlaybackEngineGStreamer::setSpectrumFrameRate(int framesPerSecond)
+{
+    if (m_spectrum) {
+        g_object_set(m_spectrum, "interval",
+                     (guint64)(GST_SECOND / qBound(15, framesPerSecond, 60)), NULL);
+    }
+}
+
+void NPlaybackEngineGStreamer::queueSpectrum(GstMessage *msg)
+{
+    if (!m_spectrumEnabled) {
+        return;
+    }
+    const GstStructure *s = gst_message_get_structure(msg);
+    if (!s || !gst_structure_has_name(s, "spectrum")) {
+        return;
+    }
+    const GValue *list = gst_structure_get_value(s, "magnitude");
+    if (!list || !GST_VALUE_HOLDS_LIST(list)) {
+        return;
+    }
+
+    GstClockTime runningTime = 0, duration = 0;
+    gst_structure_get_clock_time(s, "running-time", &runningTime);
+    gst_structure_get_clock_time(s, "duration", &duration);
+
+    SpectrumFrame frame;
+    frame.due = runningTime + duration / 2; // the middle of the measured stretch
+    guint n = gst_value_list_get_size(list);
+    frame.magnitudes.resize(n);
+    for (guint i = 0; i < n; ++i) {
+        frame.magnitudes[i] = g_value_get_float(gst_value_list_get_value(list, i));
+    }
+
+    if (!m_spectrumRate) {
+        GstPad *pad = gst_element_get_static_pad(m_spectrum, "sink");
+        if (GstCaps *caps = gst_pad_get_current_caps(pad)) {
+            gst_structure_get_int(gst_caps_get_structure(caps, 0), "rate", &m_spectrumRate);
+            gst_caps_unref(caps);
+        }
+        gst_object_unref(pad);
+    }
+
+    m_spectrumQueue.append(frame);
+    if (m_spectrumQueue.size() > 120) { // ~2 s; something is off, don't grow forever
+        m_spectrumQueue.removeFirst();
+    }
+}
+
+void NPlaybackEngineGStreamer::releaseSpectrum()
+{
+    if (!m_spectrumEnabled || m_spectrumQueue.isEmpty()) {
+        return;
+    }
+    GstClock *clock = gst_element_get_clock(m_playbin);
+    if (!clock) {
+        return;
+    }
+    GstClockTime now = gst_clock_get_time(clock) - gst_element_get_base_time(m_playbin);
+    gst_object_unref(clock);
+
+    // emit the newest frame that is due; older due frames are skipped
+    int last = -1;
+    for (int i = 0; i < m_spectrumQueue.size(); ++i) {
+        if (m_spectrumQueue.at(i).due <= now) {
+            last = i;
+        } else {
+            break;
+        }
+    }
+    if (last < 0) {
+        // after a seek the running time restarts; drop frames from far ahead
+        if (m_spectrumQueue.first().due > now + 2 * GST_SECOND) {
+            m_spectrumQueue.clear();
+        }
+        return;
+    }
+    QVector<float> magnitudes = m_spectrumQueue.at(last).magnitudes;
+    m_spectrumQueue.erase(m_spectrumQueue.begin(), m_spectrumQueue.begin() + last + 1);
+    emit spectrumChanged(magnitudes, m_spectrumRate > 0 ? m_spectrumRate : 44100);
+}
+
+void NPlaybackEngineGStreamer::clearSpectrum()
+{
+    m_spectrumQueue.clear();
+    m_spectrumRate = 0; // the next track may have a different rate
 }

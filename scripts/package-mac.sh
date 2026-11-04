@@ -16,13 +16,13 @@ mkdir -p "$OUT"
 APP="$OUT/$NAME.app"
 ditto "$SRC" "$APP"
 # strip local user data / caches that live next to the binary
-rm -f "$APP/Contents/MacOS/$BIN".{cfg,m3u,peaks} "$APP/Contents/MacOS/gstreamer-1.0.registry.bin"
+rm -f "$APP/Contents/MacOS/$BIN".{cfg,m3u,peaks,bpm} "$APP/Contents/MacOS/gstreamer-1.0.registry.bin"
 
 # audio-only GStreamer plugin set
 PLUGINS="coreelements typefindfunctions playback autodetect osxaudio app
  audioconvert audioresample volume audioparsers id3demux apetag icydemux
  isomp4 mpg123 flac ogg vorbis opus opusparse wavparse aiff faad musepack
- libav asf"
+ libav asf spectrum"
 mkdir -p "$APP/Contents/PlugIns/gstreamer"
 EXES=()
 for p in $PLUGINS; do

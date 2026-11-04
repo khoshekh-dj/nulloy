@@ -58,6 +58,7 @@ jobs:
             gst-plugins-ugly:p
             gst-libav:p
             taglib:p
+            aubio:p
             imagemagick:p
             librsvg:p
             pkgconf:p

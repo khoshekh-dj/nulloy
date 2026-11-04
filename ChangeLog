@@ -1,3 +1,20 @@
+* 1.1.0, Wed Nov 4 2026
+- New: live spectrum visualiser next to the track info (Modern and Khoshekh skins), with its own Preferences tab: style (bars, LED segments, mirrored, smooth curve), density, sensitivity, treble boost, fall speed, 30/60 fps, peak caps, colours
+- New: BPM detection with aubio for tracks without a BPM tag (tracks under 15 minutes), cached so each track is analysed once
+- New: sort the playlist by clicking a column header (numbers, durations, keys in Camelot order); a third click restores the previous order
+- New: choose playlist columns in Preferences, including Genre, Key and Label
+- New: waveform colour schemes (RGB, Vivid, accent colour) and an accent colour for the Modern skin
+- New: album art as the window background (Modern skin)
+- New: Khoshekh skin
+- New: TrackDeck logo in the Metro, Silver and Slim skins
+- Formats: WMA files now play in the packaged app; WavPack on Windows
+- Modern skin: dark pop-up menus
+- Fix: accented characters in tags (e.g. "Joaquín") showed as "?"
+- Fix: the window opened off-screen if it was last closed on a display that's no longer connected
+- Fix: Nulloy's name in window titles carried over from old settings
+- Fix: leaked GStreamer messages
+- Build: version is always current; build folders are created automatically; CI plays every supported format in the packaged app
+
 * 1.0.2, Wed Nov 4 2026
 - Fix: 1.0.1 builds reported themselves as 1.0.0 (About box, update prompts)
 - Fix: white edge around the app icon in the Dock and on Windows

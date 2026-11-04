@@ -139,6 +139,18 @@ NSettings::NSettings(QObject *parent)
     initValue("WaveformColorScheme", QString("rgb")); // rgb, vivid, accent
     initValue("AccentColor", QString("#3D8BFF"));
     initValue("AmbientBackground", true);
+    initValue("BpmDetection", true);
+    initValue("Visualiser", true);
+    initValue("VisualiserStyle", "bars");
+    initValue("VisualiserDensity", "normal");
+    initValue("VisualiserSensitivity", "normal");
+    initValue("VisualiserTrebleBoost", "normal");
+    initValue("VisualiserFallSpeed", "normal");
+    initValue("VisualiserPeaks", true);
+    initValue("VisualiserFrameRate", 30);
+    initValue("VisualiserColors", "waveform");
+    initValue("VisualiserGradientFrom", "#FF3D9A");
+    initValue("VisualiserGradientTo", "#3D8BFF");
 
 #ifdef Q_OS_WIN
     initValue("TaskbarProgress", true);

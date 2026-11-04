@@ -25,6 +25,7 @@ class NLogDialog;
 class NMainWindow;
 class NPlaybackEngineInterface;
 class NPlaylistWidget;
+class NSpectrumWidget;
 class NWaveformSlider;
 class NCoverWidget;
 class NCoverReaderInterface;
@@ -53,6 +54,7 @@ private:
     NCoverWidget *m_coverWidget;
     NCoverReaderInterface *m_coverReader;
     NWaveformSlider *m_waveformSlider;
+    NSpectrumWidget *m_spectrumWidget;
     NPreferencesDialog *m_preferencesDialog;
     NAboutDialog *m_aboutDialog;
     NVolumeSlider *m_volumeSlider;
@@ -72,6 +74,8 @@ private:
 
     void connectSignals();
     void loadCoverArt(const QString &file);
+    void prepareBpmDetection(const QString &file);
+    void applyVisualiserSettings();
 
     void loadDefaultPlaylist();
     void loadSettings();
@@ -100,6 +104,7 @@ private slots:
     void on_trayIcon_activated(QSystemTrayIcon::ActivationReason reason);
     void on_trayClickTimer_timeout();
     void trayIconCountClicks(int clicks);
+    void handleBpmDetected(const QString &file, qreal bpm);
 
 public slots:
     void quit();

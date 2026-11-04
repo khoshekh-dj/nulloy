@@ -67,6 +67,18 @@ private:
     bool m_applyingColumnWidths;
     bool m_headerPressed; // mouse is down on the header (user dragging a divider)
     void applyAutoColumnWidths();
+
+    // sorting by a column reorders the playlist itself; clicking the column a
+    // third time puts back the order from before the first sort, as long as
+    // nothing else (drag, shuffle, add, remove) has changed the order since
+    QStringList m_headerLabels;
+    int m_sortColumn;
+    Qt::SortOrder m_sortOrder;
+    QList<QListWidgetItem *> m_presortOrder;
+    void sortByColumn(int column);
+    void applyOrder(const QList<QListWidgetItem *> &order);
+    void clearSortState();
+    void updateSortIndicator();
     // << columns mode
 
     void addItem(NPlaylistWidgetItem *item);
@@ -101,6 +113,7 @@ public:
 
     QStringList selectedFiles() const;
     NPlaylistWidgetItem *itemAtRow(int row) const;
+    void refreshItemsForFile(const QString &file);
     NPlaylistWidgetItem *playingItem() const;
     int playingRow() const;
     Q_INVOKABLE bool hasPlayingItem() const;

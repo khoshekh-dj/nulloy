@@ -96,16 +96,31 @@ NTagReaderTaglib::~NTagReaderTaglib()
     }
 }
 
+// TagLib has already decoded the tag according to its declared encoding. Only
+// text that fits in single bytes can be a mislabelled legacy encoding, so only
+// that is second-guessed:
+//  - bytes that form valid UTF-8 were UTF-8 stored as Latin-1 ("JoaquÃ\u00adn"),
+//  - otherwise, if the user picked a legacy codec (e.g. Windows-1251 for old
+//    Cyrillic tags), the bytes are decoded with it,
+//  - otherwise the text is taken as TagLib read it ("Joaquín").
+// Previously the last case also went through the user's codec, which with the
+// default UTF-8 turned every accented Latin-1 or UTF-16 character into "\uFFFD".
 QString NTagReaderTaglib::toUnicode(const TagLib::String &tstr) const
 {
-    const char *cstr = tstr.toCString(false);
-    QTextCodec::ConverterState state;
-    m_utf8Codec->toUnicode(cstr, tstr.size(), &state);
-    if (state.invalidChars == 0) {
-        return m_utf8Codec->toUnicode(tstr.toCString(true));
-    } else {
-        return m_codec->toUnicode(cstr);
+    if (tstr.isAscii() || !tstr.isLatin1()) {
+        return TStringToQString(tstr);
     }
+
+    QByteArray bytes(tstr.toCString(false)); // one byte per character
+    QTextCodec::ConverterState state;
+    QString asUtf8 = m_utf8Codec->toUnicode(bytes.constData(), bytes.size(), &state);
+    if (state.invalidChars == 0 && state.remainingChars == 0) {
+        return asUtf8;
+    }
+    if (m_codec && m_codec != m_utf8Codec && m_codec->mibEnum() != m_utf8Codec->mibEnum()) {
+        return m_codec->toUnicode(bytes);
+    }
+    return TStringToQString(tstr);
 }
 
 QString NTagReaderTaglib::getTag(QChar ch) const
