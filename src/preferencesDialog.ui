@@ -1187,7 +1187,39 @@ padding: 5px;</string>
        <item>
         <widget class="QCheckBox" name="playlistColumnsCheckBox">
          <property name="text">
-          <string>Show playlist as columns (Artist, Title, Album, BPM, Duration)</string>
+          <string>Show playlist as columns</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="playlistColumnsLabel">
+         <property name="text">
+          <string>Columns to show (tick to show, drag to reorder):</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="playlistColumnsList">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>150</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>190</height>
+          </size>
+         </property>
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+         <property name="defaultDropAction">
+          <enum>Qt::MoveAction</enum>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

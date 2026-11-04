@@ -187,6 +187,24 @@ QString NTagReaderTaglib::getTag(QChar ch) const
             }
             return QString::number(res);
         }
+        case 'k': { // musical key (ID3 TKEY, MP4/Vorbis INITIALKEY)
+            TagLib::PropertyMap props = NTaglib::_tagRef->file()->properties();
+            for (const char *name : {"INITIALKEY", "KEY"}) {
+                if (props.contains(name) && !props[name].isEmpty()) {
+                    return TStringToQString(props[name].toString());
+                }
+            }
+            return "";
+        }
+        case 'l': { // record label (ID3 TPUB, MP4/Vorbis LABEL)
+            TagLib::PropertyMap props = NTaglib::_tagRef->file()->properties();
+            for (const char *name : {"LABEL", "PUBLISHER", "ORGANIZATION"}) {
+                if (props.contains(name) && !props[name].isEmpty()) {
+                    return TStringToQString(props[name].toString());
+                }
+            }
+            return "";
+        }
         case 'M': { // beats per minute
             return TStringToQString(NTaglib::_tagRef->file()->properties()["BPM"].toString());
         }

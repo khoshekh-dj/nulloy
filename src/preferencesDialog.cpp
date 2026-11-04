@@ -35,6 +35,7 @@
 
 #include <QApplication>
 #include <QGroupBox>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
@@ -61,6 +62,8 @@ NPreferencesDialog::NPreferencesDialog(NPlayer *player, QWidget *parent) : QDial
     m_player = player;
 
     ui.setupUi(this);
+    connect(ui.playlistColumnsCheckBox, &QCheckBox::toggled, ui.playlistColumnsList,
+            &QWidget::setEnabled);
 
     connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked()), this,
             SLOT(saveSettings()));
@@ -314,6 +317,8 @@ void NPreferencesDialog::on_titleFormatHelpButton_clicked()
             "<li><b>%s</b> - " + tr("Sample rate in kHz") + "</li>" +
             "<li><b>%H</b> - " + tr("Number of channels") + "</li>" +
             "<li><b>%M</b> - " + tr("BPM (beats per minute)") + "</li>" +
+            "<li><b>%k</b> - " + tr("Musical key") + "</li>" +
+            "<li><b>%l</b> - " + tr("Record label") + "</li>" +
             "<li><b>%f</b> - " + tr("File name without extension") + "</li>" +
             "<li><b>%F</b> - " + tr("File name") + "</li>" +
             "<li><b>%p</b> - " + tr("File name including absolute path") + "</li>" +
@@ -423,6 +428,14 @@ QString NPreferencesDialog::selectedContainer(N::PluginType type)
     return containerName;
 }
 
+
+// Columns offered in Preferences: "Header|track info format[|r]" (r = right-aligned)
+static const QStringList _playlistColumnCatalog = {
+    "Artist|%a",       "Title|{%t|%F}",  "Album|%A",           "Genre|%g",
+    "Key|%k",          "Label|%l",       "BPM|%M|r",           "Year|%y|r",
+    "Track|%n|r",      "Bitrate|{%B kbps}|r", "Duration|%d|r",
+};
+
 void NPreferencesDialog::loadSettings()
 {
     // general >>
@@ -488,6 +501,29 @@ void NPreferencesDialog::loadSettings()
     height += 2; // frame
     ui.waveformTrackInfoTable->setMaximumHeight(height);
     // << track info overlay
+
+    // playlist columns >>
+    {
+        ui.playlistColumnsList->clear();
+        QStringList enabled = NSettings::instance()->value("PlaylistColumnsFormat").toStringList();
+        QStringList all = enabled;
+        for (const QString &spec : _playlistColumnCatalog) {
+            if (!all.contains(spec)) {
+                all << spec;
+            }
+        }
+        for (const QString &spec : all) {
+            QListWidgetItem *item = new QListWidgetItem(spec.section('|', 0, 0),
+                                                        ui.playlistColumnsList);
+            item->setData(Qt::UserRole, spec);
+            item->setToolTip(spec.section('|', 1).remove(QRegExp("\\|r$")));
+            item->setFlags((item->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled) &
+                           ~Qt::ItemIsDropEnabled);
+            item->setCheckState(enabled.contains(spec) ? Qt::Checked : Qt::Unchecked);
+        }
+        ui.playlistColumnsList->setEnabled(ui.playlistColumnsCheckBox->isChecked());
+    }
+    // << playlist columns
 
     // track info encoding >>
     QString encoding = NSettings::instance()->value("EncodingTrackInfo").toString();
@@ -626,6 +662,21 @@ void NPreferencesDialog::saveSettings()
         }
     }
     // << track info overlay
+
+    // playlist columns >>
+    {
+        QStringList specs;
+        for (int i = 0; i < ui.playlistColumnsList->count(); ++i) {
+            QListWidgetItem *item = ui.playlistColumnsList->item(i);
+            if (item->checkState() == Qt::Checked) {
+                specs << item->data(Qt::UserRole).toString();
+            }
+        }
+        if (!specs.isEmpty()) { // keep the previous columns rather than showing none
+            NSettings::instance()->setValue("PlaylistColumnsFormat", specs);
+        }
+    }
+    // << playlist columns
 
     // track info encoding >>
     NSettings::instance()->setValue("EncodingTrackInfo",
