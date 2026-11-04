@@ -1,3 +1,8 @@
+* 1.0.1, Wed Nov 4 2026
+- New: Windows build (portable zip, x64)
+- macOS: Apple Lossless (ALAC), WMA, APE and other formats now play in the packaged app (FFmpeg decoders bundled)
+- Build: Windows fixes (MSYS2/MinGW paths, folder creation, missing include)
+
 * 1.0.0, Wed Nov 4 2026
 - First release as TrackDeck (fork of Nulloy by Sergey Vlasov), with new name and icon
 - New "Modern" skin, now the default
