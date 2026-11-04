@@ -22,7 +22,7 @@ rm -f "$APP/Contents/MacOS/$BIN".{cfg,m3u,peaks,bpm} "$APP/Contents/MacOS/gstrea
 PLUGINS="coreelements typefindfunctions playback autodetect osxaudio app
  audioconvert audioresample volume audioparsers id3demux apetag icydemux
  isomp4 mpg123 flac ogg vorbis opus opusparse wavparse aiff faad musepack
- libav asf"
+ libav asf spectrum"
 mkdir -p "$APP/Contents/PlugIns/gstreamer"
 EXES=()
 for p in $PLUGINS; do
