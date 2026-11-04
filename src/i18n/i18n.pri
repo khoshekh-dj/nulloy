@@ -11,7 +11,10 @@ win32:QMS_DEST_DIR = $$PROJECT_DIR/i18n
 mkpath($$QMS_DEST_DIR) # qmake builtin: works on every platform/shell
 qms.target = $$QMS_DEST_DIR/*.qm
 
-qms.commands = $$LRELEASE $$qms.depends && \
+# create the destination at build time too: the .app may have been deleted
+# since qmake ran (mkpath above only runs at qmake time)
+qms.commands = $$sprintf($$QMAKE_MKDIR_CMD, $$shell_path($$QMS_DEST_DIR)) && \
+               $$LRELEASE $$qms.depends && \
                $$QMAKE_MOVE $$fixSlashes($$QMS_SRC_DIR/*.qm) $$fixSlashes($$QMS_DEST_DIR)
 
 QMAKE_EXTRA_TARGETS += qms
