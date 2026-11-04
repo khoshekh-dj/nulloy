@@ -684,7 +684,7 @@ void NPlayer::updateAmbientImage()
                              .convertToFormat(QImage::Format_RGB32);
         // darken so text and controls stay readable
         QPainter painter(&blurred);
-        painter.fillRect(blurred.rect(), QColor(10, 12, 16, 170));
+        painter.fillRect(blurred.rect(), QColor(10, 12, 16, 135));
         painter.end();
 
         // a new name each time: stylesheets cache images by path

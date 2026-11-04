@@ -58,7 +58,7 @@ private:
     bool m_hasMedia;
     bool m_needsUpdate;
     bool m_rgbMode;
-    QString m_colorScheme; // "rgb", "vivid", "rekordbox" or "accent"
+    QString m_colorScheme; // "rgb", "vivid" or "accent"
     QColor m_accentColor;
     QColor bandColor(qreal low, qreal mid, qreal high) const;
 

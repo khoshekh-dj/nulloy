@@ -232,8 +232,9 @@ Main.prototype.applyStyle = function()
 
     // blurred album art behind a semi-transparent player
     if (this.ambientImage) {
-        sheet += "\n#borderWidget { border-image: url(\"" + this.ambientImage + "\") 0 0 0 0 stretch stretch; }"
-               + "\n#splitTop, #splitter, #splitter::handle { background: transparent; }"
+        // on the splitter: plain QWidgets (like borderWidget) ignore border-image
+        sheet += "\n#splitter { border-image: url(\"" + this.ambientImage + "\") 0 0 0 0 stretch stretch; }"
+               + "\n#splitTop, #splitter::handle { background: transparent; }"
                + "\n#playlistWidget { background: rgba(15, 17, 21, 150); }"
                + "\n#coverWidget { background: rgba(23, 26, 33, 120); }"
                + "\n#waveformSlider { qproperty-background: rgba(18, 21, 27, 160); }";

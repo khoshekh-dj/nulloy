@@ -51,7 +51,6 @@
 static const QList<QPair<QString, QString>> _waveformSchemes = {
     {"rgb", "RGB (balanced)"},
     {"vivid", "Vivid RGB"},
-    {"rekordbox", "3-band (blue / orange / white)"},
     {"accent", "Accent colour"},
 };
 // Accent colour presets (hex, label)
