@@ -5,7 +5,7 @@ CWD="$(dirname $0)"
 PREFIX=/usr
 LIBDIR=lib
 DEBUG=no
-APP_NAME=nulloy
+APP_NAME=trackdeck
 
 XCODE=no
 FORCE_VERSION=no
@@ -169,7 +169,11 @@ fi
 
 if $QMAKE -query "QMAKE_XSPEC" | grep -i win; then
     echo "CONFIG += unix_mingw" >> $QMAKE_CACHE
-    APP_NAME=Nulloy
+    APP_NAME=TrackDeck
+fi
+
+if [[ "$(uname)" == "Darwin" ]]; then
+    APP_NAME=TrackDeck
 fi
 
 if [[ $XCODE == "yes" ]]; then

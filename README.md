@@ -1,11 +1,15 @@
-# Nulloy Music Player
+<img src="src/icons/icon.svg" width="96" alt="TrackDeck icon">
 
-## What's new in this fork
+# TrackDeck
 
-This fork adds the features below to [Nulloy](https://github.com/nulloy/nulloy). A macOS build is available in the **[latest release](https://github.com/khoshekh-dj/nulloy/releases/latest)** (Apple Silicon only).
+**TrackDeck** is a music player for DJs, with an RGB waveform, tag-based playlist columns and a modern dark skin. It's based on [Nulloy](https://github.com/nulloy/nulloy) by Sergey Vlasov and is released under the same [GPL-3.0](LICENSE.GPL3) licence.
+
+**Download:** macOS builds are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases) (Apple Silicon only for now).
+
+## Features
 
 ### Modern skin
-A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. Choose it in Preferences → Skin → *Modern*, then restart Nulloy.
+A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. Choose it in Preferences → Skin → *Modern*, then restart TrackDeck.
 
 ![Modern skin](docs/screenshots/modern-skin.png)
 
@@ -25,11 +29,12 @@ The playlist can show Artist, Title, Album, BPM and Duration from your tags, in 
 - **Crash fix**: blank global shortcuts were registered as the "A" key system-wide, which made typing "a" pop up the player and could crash the app.
 - **Self-contained macOS packaging**: `scripts/package-mac.sh` builds a standalone `.app` and `.dmg` (see [macOS packaging](#macos-packaging) below).
 
----
+## Credits and licence
 
-![Screenshot](http://nulloy.com/files/screen.png)
-
-More screenshots: https://nulloy.com/screenshots/
+- TrackDeck is a fork of [Nulloy](https://github.com/nulloy/nulloy), Copyright (C) 2010-2024 Sergey Vlasov. TrackDeck modifications are copyright (C) 2026 Khoshekh.
+- TrackDeck is free software under the [GNU GPL v3](LICENSE.GPL3). Skins are CC-BY-SA 3.0.
+- "Nulloy" is the name of the original project. TrackDeck is not affiliated with or endorsed by it.
+- macOS builds bundle Qt, GStreamer, TagLib and their dependencies. Their licences are in `TrackDeck.app/Contents/Resources/Licenses`.
 
 ## Build Instructions
 
@@ -76,7 +81,7 @@ mingw32-make
 mingw32-make install
 ```
 
-### Build & Run Nulloy
+### Build & Run TrackDeck
 
 In the same terminal execute:
 
@@ -88,14 +93,14 @@ set PKG_CONFIG_PATH=C:\gstreamer\1.0\mingw_x86\lib\pkgconfig;%PKG_CONFIG_PATH%
 set PKG_CONFIG_PATH=C:\Downloads\taglib\lib\pkgconfig;%PKG_CONFIG_PATH%
 set GST_PLUGIN_PATH=C:\gstreamer\1.0\mingw_x86\lib
 
-cd C:\Downloads\nulloy
+cd C:\Downloads\trackdeck
 configure.bat
 mingw32-make
 copy /B /Y C:\gstreamer\1.0\mingw_x86\bin\*.dll .
 del libstdc++-6.dll
 copy /B /Y C:\Downloads\taglib\bin\libtag.dll .
-windeployqt Nulloy.exe
-Nulloy.exe
+windeployqt TrackDeck.exe
+TrackDeck.exe
 ```
 </details>
 
@@ -128,10 +133,10 @@ export PATH=/opt/local/libexec/qt5/bin:$PATH
 # install extra GStreamer plugins for more audio formats
 sudo port install gstreamer1-gst-plugins-good gstreamer1-gst-plugins-bad gstreamer1-gst-plugins-ugly
 
-cd nulloy.git
+cd trackdeck
 ./configure
 make
-open nulloy.app
+open TrackDeck.app
 ```
 
 ### HomeBrew
@@ -144,10 +149,10 @@ export PATH=/usr/local/opt/qt/bin:$PATH
 # install extra GStreamer plugins for more audio formats
 brew install gst-plugins-good gst-plugins-bad gst-plugins-ugly
 
-cd nulloy.git
+cd trackdeck
 ./configure
 make
-open nulloy.app
+open TrackDeck.app
 ```
 
 On Apple Silicon, Homebrew installs Qt 5 as `qt@5` under `/opt/homebrew`. Use these steps instead:
@@ -161,11 +166,11 @@ make
 
 ### macOS packaging
 
-To build a standalone `Nulloy.app` and `Nulloy.dmg` that run without Homebrew, start from a Homebrew build as above:
+To build a standalone `TrackDeck.app` and `TrackDeck.dmg` that run without Homebrew, start from a Homebrew build as above:
 
 ```sh
-scripts/package-mac.sh "$PWD/nulloy.app" "$PWD/dist/Nulloy"
-# -> dist/Nulloy.dmg
+scripts/package-mac.sh "$PWD/TrackDeck.app" "$PWD/dist/TrackDeck"
+# -> dist/TrackDeck.dmg
 ```
 
 The script:
@@ -181,12 +186,12 @@ The result is not notarized, so on first launch right-click the app and choose *
 Generate Xcode project file:
 
 ```sh
-cd nulloy.git
+cd trackdeck
 ./configure --xcode
 open nulloy.xcodeproj
 ```
 Build `widget_collection`, `plugin_taglib` and `plugin_gstreamer` targets. It may take several attempts to build, but it should succeed eventually.
-Build and run `nulloy` target.
+Build and run the `TrackDeck` target.
 </details>
 
 <details>
@@ -210,13 +215,13 @@ yum install gcc-c++ qt5-qtbase-devel qt5-qttools-devel qt5-qttools-static qt5-qt
 yum install gstreamer1-plugins-good gstreamer1-plugins-bad gstreamer1-plugins-ugly
 ```
 
-### Build & Run Nulloy
+### Build & Run TrackDeck
 
 ```sh
-cd nulloy.git
+cd trackdeck
 ./configure
 make
-./nulloy
+./trackdeck
 ```
 </details>
 

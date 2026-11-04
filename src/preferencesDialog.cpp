@@ -321,7 +321,7 @@ void NPreferencesDialog::on_titleFormatHelpButton_clicked()
             "<li><b>%N</b> - " + tr("Directory name") + "</li>" +
             "<li><b>%e</b> - " + tr("File name extension") + "</li>" +
             "<li><b>%E</b> - " + tr("File name extension in uppercase") + "</li>" +
-            "<li><b>%v</b> - " + tr("Nulloy version number") + "</li>" +
+            "<li><b>%v</b> - " + tr("Application version number") + "</li>" +
             "<li><b>{</b> - " + tr("Start of a condition block. Use <b>\\{</b> to print <b>{</b> character.") + "</li>" +
             "<li><b>}</b> - " + tr("End of a condition block. Use <b>\\}</b> to print <b>}</b> character.") + "</li>" +
             "<li><b>|</b> - " + tr("Alternative separator, to be used inside a condition block. Use <b>\\|</b> to print <b>|</b> character.") + "</li>" +

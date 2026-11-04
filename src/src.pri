@@ -98,6 +98,8 @@ system(cp $$SRC_DIR/icons/icon.rc $$TMP_DIR/)
 win32:RC_FILE = $$TMP_DIR/icon.rc
 
 mac {
+    # bundle id: com.khoshekh.<TARGET>
+    QMAKE_TARGET_BUNDLE_PREFIX = com.khoshekh
     system($$QMAKE_MKDIR $$TMP_DIR/icon.iconset)
     SIZES = 16 32 128 256
     for(size, SIZES) {

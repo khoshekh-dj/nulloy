@@ -16,6 +16,14 @@
 #ifndef N_GLOBAL_H
 #define N_GLOBAL_H
 
+// Branding: TrackDeck is a fork of Nulloy (https://github.com/nulloy/nulloy)
+#define N_APP_NAME "TrackDeck"
+#define N_HOMEPAGE_URL "https://github.com/khoshekh-dj/trackdeck"
+#define N_DOWNLOAD_URL "https://github.com/khoshekh-dj/trackdeck/releases"
+#define N_LATEST_VERSION_URL "https://raw.githubusercontent.com/khoshekh-dj/trackdeck/main/VERSION"
+#define N_UPSTREAM_NAME "Nulloy"
+#define N_UPSTREAM_URL "https://github.com/nulloy/nulloy"
+
 #include <QPainter>
 #include <QtCore>
 

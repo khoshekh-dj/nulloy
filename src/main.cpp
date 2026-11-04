@@ -16,6 +16,7 @@
 #include <qtsingleapplication.h>
 
 #include "common.h"
+#include "global.h"
 #include "player.h"
 #include "settings.h"
 
@@ -114,9 +115,9 @@ int main(int argc, char *argv[])
 #endif
 
     QtSingleApplication instance(argc, argv);
-    instance.setApplicationName("Nulloy");
+    instance.setApplicationName(N_APP_NAME);
     instance.setApplicationVersion(QString(_N_VERSION_));
-    instance.setOrganizationDomain("nulloy.com");
+    instance.setOrganizationDomain("khoshekh.trackdeck");
     instance.setQuitOnLastWindowClosed(false);
 
     qInstallMessageHandler(messageHandler);

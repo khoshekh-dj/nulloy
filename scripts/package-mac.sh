@@ -1,8 +1,11 @@
 #!/bin/bash
-# Build a self-contained Nulloy.app + Nulloy.dmg from an already-built nulloy.app
-# Usage: package-mac.sh <path/to/built/nulloy.app> <output dir>
+# Build a self-contained <Name>.app + <Name>.dmg from an already-built app bundle
+# Usage: package-mac.sh <path/to/built/TrackDeck.app> <output dir>
 set -euo pipefail
-SRC=${1:?path to built nulloy.app}
+SRC=${1:?path to built app bundle}
+SRC=${SRC%/}
+NAME=$(basename "$SRC" .app)
+BIN=$(/usr/libexec/PlistBuddy -c "Print CFBundleExecutable" "$SRC/Contents/Info.plist")
 OUT=${2:?output dir}
 QT=$(brew --prefix qt@5)
 GST=$(brew --prefix gstreamer)
@@ -10,10 +13,10 @@ GSTLIB=$(brew --prefix)/lib/gstreamer-1.0
 
 rm -rf "$OUT"
 mkdir -p "$OUT"
-APP="$OUT/Nulloy.app"
+APP="$OUT/$NAME.app"
 ditto "$SRC" "$APP"
 # strip local user data / caches that live next to the binary
-rm -f "$APP"/Contents/MacOS/{nulloy.cfg,nulloy.m3u,nulloy.peaks,gstreamer-1.0.registry.bin}
+rm -f "$APP/Contents/MacOS/$BIN".{cfg,m3u,peaks} "$APP/Contents/MacOS/gstreamer-1.0.registry.bin"
 
 # audio-only GStreamer plugin set
 PLUGINS="coreelements typefindfunctions playback autodetect osxaudio app
@@ -36,6 +39,12 @@ done
 
 # copy in @rpath dependencies macdeployqt missed and verify everything resolves
 python3 "$(dirname "$0")/mac-fix-deps.py" "$APP" "$(brew --prefix)"
+
+# licence texts for every bundled Homebrew library: dependency closure of the
+# original (not rewritten) binaries plus everything that ended up in the bundle
+python3 "$(dirname "$0")/mac-collect-licenses.py" "$APP" "$(brew --prefix)" "$(cd "$(dirname "$0")/.." && pwd)" \
+    "$SRC/Contents/MacOS/$BIN" "$SRC"/Contents/MacOS/plugins/*.dylib \
+    "$GST/libexec/gstreamer-1.0/gst-plugin-scanner" $(for p in $PLUGINS; do echo "$GSTLIB/libgst$p.dylib"; done)
 
 # drop leftover rpaths that point into Homebrew
 while IFS= read -r -d '' f; do
@@ -73,7 +82,7 @@ done
 # ad-hoc sign inside-out: every Mach-O file, then frameworks, then the app
 while IFS= read -r -d '' f; do
     file "$f" | grep -q Mach-O || continue
-    [ "$f" = "$APP/Contents/MacOS/nulloy" ] && continue
+    [ "$f" = "$APP/Contents/MacOS/$BIN" ] && continue
     codesign --force --sign - "$f" 2>/dev/null
 done < <(find "$APP/Contents" -type f -print0)
 for fw in "$APP"/Contents/Frameworks/*.framework; do
@@ -83,6 +92,6 @@ codesign --force --sign - "$APP"
 codesign --verify --strict "$APP"
 
 ln -s /Applications "$OUT/Applications"
-hdiutil create -quiet -volname Nulloy -srcfolder "$OUT" -ov -format UDZO "$OUT/../Nulloy.dmg"
+hdiutil create -quiet -volname "$NAME" -srcfolder "$OUT" -ov -format UDZO "$OUT/../$NAME.dmg"
 rm "$OUT/Applications"
-du -sh "$APP" "$OUT/../Nulloy.dmg"
+du -sh "$APP" "$OUT/../$NAME.dmg"
