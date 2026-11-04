@@ -79,6 +79,7 @@ NPlayer::NPlayer()
     NPluginLoader::init();
 
     m_trackInfoReader = new NTrackInfoReader(tagReader(), this);
+    m_skinTrackInfoReader = new NTrackInfoReader(tagReader(), this);
 
     m_coverReader = dynamic_cast<NCoverReaderInterface *>(NPluginLoader::getPlugin(N::CoverReader));
 
@@ -117,7 +118,9 @@ NPlayer::NPlayer()
             "repeatButton")) {
         repeatButton->setChecked(m_playlistWidget->repeatMode());
     }
-    m_playlistWidget->setTrackInfoReader(m_trackInfoReader);
+    // separate reader: playlist refreshes must not overwrite the duration and
+    // position cached for the playing track (used by the waveform labels)
+    m_playlistWidget->setTrackInfoReader(new NTrackInfoReader(tagReader(), this));
 
     m_trackInfoWidget = new NTrackInfoWidget();
     m_trackInfoWidget->setTrackInfoReader(m_trackInfoReader);
@@ -913,4 +916,14 @@ bool NPlayer::revealInFileManager(const QString &file, QString *error) const
 #endif
 
     return true;
+}
+
+QString NPlayer::trackInfo(const QString &format)
+{
+    QString file = m_playbackEngine->currentMedia();
+    if (file.isEmpty()) {
+        return QString();
+    }
+    m_skinTrackInfoReader->setSource(file);
+    return m_skinTrackInfoReader->toString(format);
 }

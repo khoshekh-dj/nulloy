@@ -116,6 +116,13 @@ public slots:
     void showPlaylistContextMenu(const QPoint &pos);
     void readMessage(const QString &str);
     bool revealInFileManager(const QString &file, QString *error) const;
+
+    // For skin scripts: format track info (e.g. "%t", "%a", "{%M BPM}") for the
+    // current media. Returns an empty string when nothing is loaded.
+    QString trackInfo(const QString &format);
+
+private:
+    NTrackInfoReader *m_skinTrackInfoReader;
 };
 
 #endif
