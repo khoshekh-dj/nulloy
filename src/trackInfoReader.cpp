@@ -120,6 +120,12 @@ QString NTrackInfoReader::getInfo(QChar ch) const
         case 'v':
             return QCoreApplication::applicationVersion();
         default:
+            // the tag reader plugin holds a single open file shared by all
+            // NTrackInfoReader instances; make sure it points at ours
+            // (no-op when it already does)
+            if (!m_fileInfo.filePath().isEmpty()) {
+                m_reader->setSource(m_fileInfo.filePath());
+            }
             return m_reader->getTag(ch);
     }
 }
