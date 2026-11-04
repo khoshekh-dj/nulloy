@@ -23,6 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check version matches tag (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          want="${GITHUB_REF_NAME#trackdeck-v}"
+          changelog=$(head -1 ChangeLog | awk '{print $2}' | tr -d ',')
+          version_file=$(tr -d '[:space:]' < VERSION)
+          echo "tag: $want | ChangeLog: $changelog | VERSION: $version_file"
+          if [ "$want" != "$changelog" ] || [ "$want" != "$version_file" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match ChangeLog ($changelog) / VERSION ($version_file). Merge the version bump first, then tag that commit."
+            exit 1
+          fi
+
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
