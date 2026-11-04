@@ -1,3 +1,8 @@
+* 1.0.2, Wed Nov 4 2026
+- Fix: 1.0.1 builds reported themselves as 1.0.0 (About box, update prompts)
+- Fix: white edge around the app icon in the Dock and on Windows
+- CI: release builds fail if the tag doesn't match the version in ChangeLog/VERSION
+
 * 1.0.1, Wed Nov 4 2026
 - New: Windows build (portable zip, x64)
 - macOS: Apple Lossless (ALAC), WMA, APE and other formats now play in the packaged app (FFmpeg decoders bundled)
