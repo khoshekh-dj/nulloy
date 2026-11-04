@@ -8,3 +8,9 @@ moc_*
 *.o
 .qmake.*
 .cache
+
+# build output
+/tmp/
+/dist/
+/*.app/
+/skins/

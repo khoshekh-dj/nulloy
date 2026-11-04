@@ -14,6 +14,7 @@
 *********************************************************************/
 
 #include "aboutDialog.h"
+#include "global.h"
 
 #include <QCoreApplication>
 #include <QFile>
@@ -41,8 +42,7 @@ NAboutDialog::NAboutDialog(QWidget *parent) : QDialog(parent)
 #endif
             "<b>" +  QCoreApplication::applicationName() + " Music Player</b>" +
             "<br>" +
-            "<a href='https://" + QCoreApplication::organizationDomain() + "'>https://" +
-                                 QCoreApplication::organizationDomain() + "</a>" +
+            "<a href='" N_HOMEPAGE_URL "'>" N_HOMEPAGE_URL "</a>" +
         "</span><br><br>" +
 #ifdef Q_OS_MAC
         "<span style=\"font-size:10pt;\">" +
@@ -51,7 +51,16 @@ NAboutDialog::NAboutDialog(QWidget *parent) : QDialog(parent)
 #endif
             tr("Version: ") + QCoreApplication::applicationVersion() +
             "<br><br>" +
-            "Copyright (C) 2010-2024 Sergey Vlasov &lt;sergey@vlasov.me&gt;" +
+            tr("Based on") + " <a href='" N_UPSTREAM_URL "'>" N_UPSTREAM_NAME "</a> " +
+            tr("by Sergey Vlasov, modified by Khoshekh.") +
+            "<br><br>" +
+            "Copyright (C) 2010-2024 Sergey Vlasov &lt;sergey@vlasov.me&gt;<br>" +
+            "Modifications copyright (C) 2026 Khoshekh" +
+            "<br><br>" + tr("Licences of bundled third-party components are included with the application") +
+#ifdef Q_OS_MAC
+            " (Contents/Resources/Licenses)" +
+#endif
+            "." +
         "</span>";
     // clang-format on
 

@@ -14,6 +14,7 @@
 *********************************************************************/
 
 #include "common.h"
+#include "global.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -74,7 +75,7 @@ QString NCore::rcDir()
 #ifndef Q_OS_WIN
         QDir parentDir(QCoreApplication::applicationDirPath());
         if (parentDir.dirName() == "bin") {
-            _rcDir = QDir::homePath() + "/.nulloy";
+            _rcDir = QDir::homePath() + "/.trackdeck";
         } else {
             _rcDir = QCoreApplication::applicationDirPath();
         }
@@ -93,7 +94,7 @@ QString NCore::rcDir()
         if (parentDir == programFilesDir || parentDir == programFilesDirX86) {
             QString appData = QProcessEnvironment::systemEnvironment().value("AppData");
             if (appData != "")
-                _rcDir = appData + "/Nulloy";
+                _rcDir = appData + "/" + N_APP_NAME;
             else
                 _rcDir = QCoreApplication::applicationDirPath();
         } else {

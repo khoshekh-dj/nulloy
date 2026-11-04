@@ -4,7 +4,7 @@ set BASENAME=%0
 set QMAKE=qmake
 
 set DEBUG=no
-set APP_NAME=Nulloy
+set APP_NAME=TrackDeck
 set CONSOLE=no
 
 set FORCE_VERSION=no

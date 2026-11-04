@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="styleSheet">
-   <string notr="true">/* Nulloy "Modern" skin: dark surfaces, electric blue accent (#3D8BFF) */
+   <string notr="true">/* TrackDeck "Modern" skin: dark surfaces, electric blue accent (#3D8BFF) */
 
 #borderWidget {
 	background: #0F1115;

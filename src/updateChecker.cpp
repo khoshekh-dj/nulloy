@@ -14,6 +14,7 @@
 *********************************************************************/
 
 #include "updateChecker.h"
+#include "global.h"
 
 #include "messageBox.h"
 #include "settings.h"
@@ -51,7 +52,7 @@ void NUpdateChecker::checkOnline()
     m_version = QString();
     NSettings::instance()->setValue("UpdateIgnore", "");
     m_networkManager->get(QNetworkRequest(
-        QUrl("https://static." + QCoreApplication::organizationDomain() + "/release/version")));
+        QUrl(N_LATEST_VERSION_URL)));
 }
 
 void NUpdateChecker::on_finished(QNetworkReply *reply)
@@ -69,9 +70,7 @@ void NUpdateChecker::on_finished(QNetworkReply *reply)
             NMessageBox msgBox(300, *m_centerInWindow);
             msgBox.setWindowTitle(tr("Update"));
             msgBox.setText(QCoreApplication::applicationName() + " " + m_version + " " +
-                           tr("released!") + "<br><br>" + "<a href='https://" +
-                           QCoreApplication::organizationDomain() + "/download'>https://" +
-                           QCoreApplication::organizationDomain() + "/download</a>");
+                           tr("released!") + "<br><br>" + "<a href='" N_DOWNLOAD_URL "'>" N_DOWNLOAD_URL "</a>");
             msgBox.setStandardButtons(QMessageBox::Ignore);
             msgBox.setWindowModality(Qt::ApplicationModal);
             msgBox.setIcon(QMessageBox::Information);
