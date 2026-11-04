@@ -1,0 +1,85 @@
+name: macOS build
+
+on:
+  push:
+    branches: [main]
+    tags: ["trackdeck-v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build TrackDeck.dmg (Apple Silicon)
+    runs-on: macos-14
+    permissions:
+      contents: write # only used on tag pushes, to attach the .dmg to the release
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ENV_HINTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install qt@5 gstreamer taglib imagemagick librsvg pkgconf
+          echo "$(brew --prefix qt@5)/bin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build
+        run: make -j"$(sysctl -n hw.ncpu)"
+
+      - name: Package
+        run: |
+          scripts/package-mac.sh "$PWD/TrackDeck.app" "$PWD/dist/TrackDeck"
+          codesign --verify --strict dist/TrackDeck/TrackDeck.app
+
+      - name: Smoke test packaged app
+        run: |
+          # starts Qt from inside the bundle (platform plugin, frameworks) and exits
+          version=$(dist/TrackDeck/TrackDeck.app/Contents/MacOS/TrackDeck --version)
+          echo "TrackDeck reports version: $version"
+          test -n "$version"
+          test -f dist/TrackDeck/TrackDeck.app/Contents/Resources/Licenses/TrackDeck/LICENSE.GPL3
+          test -f dist/TrackDeck/TrackDeck.app/Contents/Resources/skins/modern.nzs
+
+      - name: Name artifact
+        id: name
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            label="${GITHUB_REF_NAME#trackdeck-v}"
+          else
+            label="$(git rev-parse --short HEAD)"
+          fi
+          file="TrackDeck-${label}-macOS-AppleSilicon.dmg"
+          mv dist/TrackDeck.dmg "dist/$file"
+          shasum -a 256 "dist/$file" | tee "dist/$file.sha256"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.file }}
+          path: |
+            dist/${{ steps.name.outputs.file }}
+            dist/${{ steps.name.outputs.file }}.sha256
+          if-no-files-found: error
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # attach to an existing release for this tag, or create a draft one
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --draft --title "TrackDeck ${GITHUB_REF_NAME#trackdeck-v}" \
+              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`. Apple Silicon only."
+          fi
+          gh release upload "$GITHUB_REF_NAME" "dist/${{ steps.name.outputs.file }}" \
+            "dist/${{ steps.name.outputs.file }}.sha256" --clobber
