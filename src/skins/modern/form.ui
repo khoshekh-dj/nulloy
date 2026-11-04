@@ -233,6 +233,50 @@ NTrackInfoWidget #MiddleCenter {
 	background: transparent;
 }
 
+/* pop-up menus (context menu, playlist menu) */
+QMenu {
+	background: #171A21;
+	border: 1px solid #2A303C;
+	padding: 6px 0;
+}
+QMenu::item {
+	color: #E6E8EC;
+	background: transparent;
+	padding: 6px 28px 6px 30px;
+	margin: 0 6px;
+	border-radius: 5px;
+}
+QMenu::item:selected {
+	background: #3D8BFF;
+	color: #FFFFFF;
+}
+QMenu::item:disabled {
+	color: #5A606B;
+	background: transparent;
+}
+QMenu::separator {
+	height: 1px;
+	background: #262B36;
+	margin: 5px 12px;
+}
+QMenu::indicator {
+	width: 14px;
+	height: 14px;
+	left: 10px;
+}
+QMenu::indicator:checked {
+	image: url(check.svg);
+}
+QMenu::right-arrow {
+	image: url(chevron.svg);
+	width: 12px;
+	height: 12px;
+	margin-right: 10px;
+}
+QMenu::icon {
+	padding-left: 10px;
+}
+
 QToolTip {
 	color: #F3F4F6;
 	background: #1E222B;
