@@ -7,6 +7,7 @@
 **Download:** macOS builds are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases) (Apple Silicon only for now).
 
 ## Features
+=======
 
 ### Modern skin
 A dark design with an electric blue accent. It has large cover art with the title, artist and album, a BPM · kbps · kHz line from the tags, a rounded waveform, centred controls and a cleaner playlist. Choose it in Preferences → Skin → *Modern*, then restart TrackDeck.
