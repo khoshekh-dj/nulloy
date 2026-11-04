@@ -72,6 +72,7 @@ private:
 
     void connectSignals();
     void loadCoverArt(const QString &file);
+    void prepareBpmDetection(const QString &file);
 
     void loadDefaultPlaylist();
     void loadSettings();
@@ -100,6 +101,7 @@ private slots:
     void on_trayIcon_activated(QSystemTrayIcon::ActivationReason reason);
     void on_trayClickTimer_timeout();
     void trayIconCountClicks(int clicks);
+    void handleBpmDetected(const QString &file, qreal bpm);
 
 public slots:
     void quit();

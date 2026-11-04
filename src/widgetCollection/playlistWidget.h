@@ -101,6 +101,7 @@ public:
 
     QStringList selectedFiles() const;
     NPlaylistWidgetItem *itemAtRow(int row) const;
+    void refreshItemsForFile(const QString &file);
     NPlaylistWidgetItem *playingItem() const;
     int playingRow() const;
     Q_INVOKABLE bool hasPlayingItem() const;

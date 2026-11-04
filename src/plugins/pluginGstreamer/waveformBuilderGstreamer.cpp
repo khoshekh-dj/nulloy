@@ -52,11 +52,11 @@ static void _handleBuffer(GstPad *pad, GstPadProbeInfo *info, gpointer userData)
 
     NWaveformBuilderGstreamer *obj = reinterpret_cast<NWaveformBuilderGstreamer *>(userData);
     obj->setSampleRate(rate);
-    obj->handleBuffer(pcmBuffer, nChannels, nSamples);
+    obj->handleBuffer(pcmBuffer, nChannels, nSamples, rate);
     gst_buffer_unmap(buffer, &mapInfo);
 }
 
-void NWaveformBuilderGstreamer::handleBuffer(gint16 *pcmBuffer, int nChannels, int nSamples)
+void NWaveformBuilderGstreamer::handleBuffer(gint16 *pcmBuffer, int nChannels, int nSamples, int rate)
 {
     for (int i = 0; i < nSamples; ++i) {
         qint32 pcmValue = 0;
@@ -66,6 +66,10 @@ void NWaveformBuilderGstreamer::handleBuffer(gint16 *pcmBuffer, int nChannels, i
         }
         qreal realValue = -((qreal)pcmValue / nChannels) / (1 << 15);
         m_peaks.append(realValue);
+    }
+
+    if (m_bpmActive) {
+        m_bpmDetector.process(pcmBuffer, nChannels, nSamples, rate);
     }
 }
 
@@ -130,13 +134,22 @@ void NWaveformBuilderGstreamer::start(const QString &file)
 {
     stop();
 
-    if (peaksFindFromCache(file)) {
+    // a cached waveform is enough unless the BPM is wanted too, which needs
+    // the audio decoded again
+    bool wantBpm = m_bpmRequested;
+    m_bpmRequested = false;
+    if (!wantBpm && peaksFindFromCache(file)) {
         return;
     }
     if (!QFileInfo(file).exists()) {
         return;
     }
     m_currentFile = file;
+    {
+        QMutexLocker locker(&_mutex);
+        m_bpmDetector.reset();
+        m_bpmActive = wantBpm;
+    }
 
     m_playbin = gst_parse_launch("uridecodebin name=w_uridecodebin \
                                   ! audioconvert ! audio/x-raw, format=S16LE \
@@ -189,14 +202,29 @@ void NWaveformBuilderGstreamer::update()
     GstMessage *msg = gst_bus_pop_filtered(bus, GstMessageType(GST_MESSAGE_EOS | GST_MESSAGE_ERROR));
     if (msg) {
         switch (GST_MESSAGE_TYPE(msg)) {
-            case GST_MESSAGE_EOS:
+            case GST_MESSAGE_EOS: {
                 m_peaks.complete();
+                double bpm = 0;
+                bool reportBpm = false;
+                {
+                    QMutexLocker locker(&_mutex);
+                    if (m_bpmActive) {
+                        bpm = m_bpmDetector.finish();
+                        m_bpmActive = false;
+                        reportBpm = true;
+                    }
+                }
 #if defined(QT_DEBUG) && !defined(QT_NO_DEBUG)
                 qDebug() << "WaveformBuilder ::"
                          << "completed" << m_peaks.size();
 #endif
+                QString file = m_currentFile;
                 stop();
+                if (reportBpm) {
+                    emit bpmDetected(file, bpm);
+                }
                 break;
+            }
             case GST_MESSAGE_ERROR: {
                 gchar *debug;
                 GError *err = NULL;
