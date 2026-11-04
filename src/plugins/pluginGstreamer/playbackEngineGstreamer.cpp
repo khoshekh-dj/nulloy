@@ -47,7 +47,6 @@ static OSStatus _on_default_output_changed(AudioObjectID, UInt32, const AudioObj
 #define GST_BUS_POP_MSEC 50
 #define GST_BUS_POP_SPECTRUM_MSEC 15 // poll faster while the visualiser is on
 #define SPECTRUM_BANDS 1024          // ~21.5 Hz per band at 44.1 kHz
-#define SPECTRUM_INTERVAL_NSEC (GST_SECOND / 60)
 
 static void _on_about_to_finish(GstElement *, gpointer userData)
 {
@@ -97,7 +96,7 @@ void NPlaybackEngineGStreamer::init()
     m_spectrum = gst_element_factory_make("spectrum", NULL);
     if (m_spectrum) {
         g_object_set(m_spectrum, "bands", SPECTRUM_BANDS, "threshold", -80, "interval",
-                     (guint64)SPECTRUM_INTERVAL_NSEC, "post-messages", FALSE, "message-magnitude",
+                     (guint64)(GST_SECOND / 30), "post-messages", FALSE, "message-magnitude",
                      TRUE, "message-phase", FALSE, NULL);
         g_object_set(m_playbin, "audio-filter", m_spectrum, NULL);
     }
@@ -586,6 +585,14 @@ void NPlaybackEngineGStreamer::setSpectrumEnabled(bool enabled)
                                                     : GST_BUS_POP_MSEC);
     if (!m_spectrumEnabled) {
         clearSpectrum();
+    }
+}
+
+void NPlaybackEngineGStreamer::setSpectrumFrameRate(int framesPerSecond)
+{
+    if (m_spectrum) {
+        g_object_set(m_spectrum, "interval",
+                     (guint64)(GST_SECOND / qBound(15, framesPerSecond, 60)), NULL);
     }
 }
 

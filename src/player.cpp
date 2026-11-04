@@ -520,12 +520,15 @@ void NPlayer::applyVisualiserSettings()
         look.colors = m_settings->value("VisualiserColors").toString();
         look.gradientFrom = QColor(m_settings->value("VisualiserGradientFrom").toString());
         look.gradientTo = QColor(m_settings->value("VisualiserGradientTo").toString());
+        look.frameRate = m_settings->value("VisualiserFrameRate").toInt();
         m_spectrumWidget->setAppearance(look);
         m_spectrumWidget->setVisible(visualiser);
         if (!visualiser) {
             m_spectrumWidget->clear();
         }
     }
+    QMetaObject::invokeMethod(m_playbackEngine, "setSpectrumFrameRate",
+                              Q_ARG(int, m_settings->value("VisualiserFrameRate").toInt()));
     QMetaObject::invokeMethod(m_playbackEngine, "setSpectrumEnabled", Q_ARG(bool, visualiser));
 }
 

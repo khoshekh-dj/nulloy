@@ -119,6 +119,7 @@ public:
     Q_INVOKABLE void _scheduleReopenAudioOutput(); // called by name from the CoreAudio listener
     // Turns the visualiser's spectrum analysis on or off (called by name).
     Q_INVOKABLE void setSpectrumEnabled(bool enabled);
+    Q_INVOKABLE void setSpectrumFrameRate(int framesPerSecond);
 
 signals:
     void positionChanged(qreal pos);

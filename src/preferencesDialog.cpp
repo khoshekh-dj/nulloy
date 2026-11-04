@@ -86,6 +86,8 @@ static const QList<_VisualiserOption> _visualiserOptions = {
      {{"off", "Off"}, {"normal", "Normal"}, {"strong", "Strong"}}},
     {"visualiserFallSpeedComboBox", "VisualiserFallSpeed",
      {{"slow", "Slow"}, {"normal", "Normal"}, {"fast", "Fast"}}},
+    {"visualiserFrameRateComboBox", "VisualiserFrameRate",
+     {{"30", "30 per second (lighter)"}, {"60", "60 per second (smoother)"}}},
     {"visualiserColorsComboBox", "VisualiserColors",
      {{"waveform", "Follow waveform colours"}, {"accent", "Accent colour"},
       {"gradient", "Custom gradient"}}},
