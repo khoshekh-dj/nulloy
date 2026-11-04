@@ -232,9 +232,10 @@ Main.prototype.applyStyle = function()
 
     // blurred album art behind a semi-transparent player
     if (this.ambientImage) {
-        // on the splitter: plain QWidgets (like borderWidget) ignore border-image
-        sheet += "\n#splitter { border-image: url(\"" + this.ambientImage + "\") 0 0 0 0 stretch stretch; }"
-               + "\n#splitTop, #splitter::handle { background: transparent; }"
+        // centred, unscaled background-image (plain QWidgets don't support a
+        // stretched border-image); everything above it is made see-through
+        sheet += "\n#borderWidget { background: #0F1115 url(\"" + this.ambientImage + "\") no-repeat center center; }"
+               + "\n#splitter, #splitTop, #splitter::handle { background: transparent; }"
                + "\n#playlistWidget { background: rgba(15, 17, 21, 150); }"
                + "\n#coverWidget { background: rgba(23, 26, 33, 120); }"
                + "\n#waveformSlider { qproperty-background: rgba(18, 21, 27, 160); }";

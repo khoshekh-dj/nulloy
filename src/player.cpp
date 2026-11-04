@@ -677,21 +677,29 @@ void NPlayer::updateAmbientImage()
     m_ambientImagePath.clear();
 
     if (!m_currentCover.isNull() && m_settings->value("AmbientBackground").toBool()) {
-        // cheap, smooth blur: shrink to a few pixels, then scale back up
+        // cheap, smooth blur: shrink to a few pixels, then scale back up in two
+        // stages (one big jump leaves visible blocks). Fill a large canvas so
+        // the skin can centre it without scaling (plain QWidgets only support
+        // background-image, not a stretched border-image).
+        const QSize canvas(1920, 1200);
         QImage tiny = m_currentCover.scaled(24, 24, Qt::KeepAspectRatioByExpanding,
                                             Qt::SmoothTransformation);
-        QImage blurred = tiny.scaled(480, 480, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+        QImage soft = tiny.scaled(96, 96, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        QImage blurred = soft.scaled(canvas, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)
                              .convertToFormat(QImage::Format_RGB32);
+        blurred = blurred.copy((blurred.width() - canvas.width()) / 2,
+                               (blurred.height() - canvas.height()) / 2, canvas.width(),
+                               canvas.height());
         // darken so text and controls stay readable
         QPainter painter(&blurred);
         painter.fillRect(blurred.rect(), QColor(10, 12, 16, 135));
         painter.end();
 
         // a new name each time: stylesheets cache images by path
-        QString path = QDir::tempPath() + QString("/trackdeck-ambient-%1-%2.png")
+        QString path = QDir::tempPath() + QString("/trackdeck-ambient-%1-%2.jpg")
                                               .arg(QCoreApplication::applicationPid())
                                               .arg(++m_ambientImageCounter);
-        if (blurred.save(path)) {
+        if (blurred.save(path, "JPG", 88)) {
             m_ambientImagePath = path;
         }
     }
