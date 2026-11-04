@@ -21,7 +21,8 @@ rm -f "$APP/Contents/MacOS/$BIN".{cfg,m3u,peaks} "$APP/Contents/MacOS/gstreamer-
 # audio-only GStreamer plugin set
 PLUGINS="coreelements typefindfunctions playback autodetect osxaudio app
  audioconvert audioresample volume audioparsers id3demux apetag icydemux
- isomp4 mpg123 flac ogg vorbis opus opusparse wavparse aiff faad musepack"
+ isomp4 mpg123 flac ogg vorbis opus opusparse wavparse aiff faad musepack
+ libav"
 mkdir -p "$APP/Contents/PlugIns/gstreamer"
 EXES=()
 for p in $PLUGINS; do
