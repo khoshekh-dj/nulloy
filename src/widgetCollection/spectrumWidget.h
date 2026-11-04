@@ -23,7 +23,7 @@
 
 class QTimer;
 
-// Live spectrum bars with falling peak caps, fed by the playback engine's
+// Live spectrum with falling peak caps, fed by the playback engine's
 // spectrumChanged() signal. Bands are spaced logarithmically from 30 Hz to
 // 16 kHz; the number of bars follows the widget's width.
 class NSpectrumWidget : public QWidget
@@ -31,10 +31,26 @@ class NSpectrumWidget : public QWidget
     Q_OBJECT
 
 public:
+    // Appearance, as chosen in Preferences. String values match the settings.
+    struct Appearance
+    {
+        QString style = "bars";         // bars, segments, mirrored, curve
+        QString density = "normal";     // wide, normal, narrow
+        QString sensitivity = "normal"; // low, normal, high
+        QString trebleBoost = "normal"; // off, normal, strong
+        QString fallSpeed = "normal";   // slow, normal, fast
+        bool peaks = true;
+        QString colors = "waveform"; // waveform, accent, gradient
+        QColor gradientFrom = QColor("#FF3D9A");
+        QColor gradientTo = QColor("#3D8BFF");
+    };
+
     NSpectrumWidget(QWidget *parent = 0);
     ~NSpectrumWidget() {}
 
+    // the waveform's colour settings, used when colors == "waveform"
     void setColorScheme(bool rgb, const QString &scheme, const QColor &accent);
+    void setAppearance(const Appearance &appearance);
 
 public slots:
     void setSpectrum(const QVector<float> &magnitudes, int sampleRate);
@@ -49,15 +65,13 @@ private slots:
 
 private:
     int barCount() const;
+    int barWidth() const;
+    int barGap() const;
     QColor barColor(int bar, int bars) const;
+    void resetBars(int n);
     void renderCache();
-
-    // bars pre-rendered at full height (lit and unlit); each frame copies
-    // the visible part of each bar instead of painting gradients
-    QPixmap m_litBars;
-    QPixmap m_unlitBars;
-    QVector<QColor> m_capColors;
-    bool m_cacheDirty;
+    void paintBars(QPainter &painter);
+    void paintCurve(QPainter &painter);
 
     QTimer *m_timer;
     QElapsedTimer m_clock;
@@ -72,6 +86,14 @@ private:
     bool m_rgb;
     QString m_scheme;
     QColor m_accent;
+    Appearance m_appearance;
+
+    // bars pre-rendered at full height (lit and unlit); each frame copies
+    // the visible part of each bar instead of painting gradients
+    QPixmap m_litBars;
+    QPixmap m_unlitBars;
+    QVector<QColor> m_colors;
+    bool m_cacheDirty;
 };
 
 #endif
