@@ -47,6 +47,7 @@ class NPlayer : public QWidget
     Q_OBJECT
 
 private:
+    void rememberPlaylist(const QString &file); // current playlist file + recents
     NSettings *m_settings;
     NActionManager *m_actionManager;
     NScriptEngine *m_scriptEngine;
@@ -115,7 +116,18 @@ public slots:
     void showTagEditor(const QString &path);
     void showOpenFileDialog();
     void showOpenDirDialog();
-    void showSavePlaylistDialog();
+    void showSavePlaylistDialog(); // "Save Playlist As..."
+
+    // playlists kept as .m3u8 files in a playlists folder >>
+    QString playlistsFolder() const;
+    QStringList savedPlaylists() const;   // files in the playlists folder
+    QStringList recentPlaylists() const;  // most recent first, existing files only
+    void showOpenPlaylistDialog();
+    void openPlaylist(const QString &file); // replace or add, per Preferences
+    void savePlaylist();                    // to the current playlist file, else Save As
+    void addSelectionToPlaylist(const QString &file);
+    void addSelectionToNewPlaylist();
+    // <<
     void showToolTip(const QString &text);
     void showContextMenu(const QPoint &pos);
     void showPlaylistContextMenu(const QPoint &pos);

@@ -42,6 +42,9 @@ The playlist can show columns from your tags: Artist, Title, Album, Genre, Key, 
 
 ![Playlist columns](docs/screenshots/playlist-columns.png)
 
+### Playlists
+Save the current list as a playlist (**Save Playlist As…**, Shift+Cmd+S), open one (**Open Playlist…**, Cmd+L, or **Open Recent Playlist**), and right-click tracks to **Add to Playlist ▸** an existing playlist or a new one, without leaving the list you're on. Playlists are `.m3u8` files in `~/Music/TrackDeck Playlists` (configurable in Preferences → General), so rekordbox, Serato, Engine DJ and most players can import them. When opening a playlist, TrackDeck asks whether to replace the current list or add to it; Preferences sets a default. **Save Playlist** (Cmd+S) updates the playlist you opened.
+
 ### Also
 - **Formats:** MP3, AAC/M4A, Apple Lossless (ALAC), FLAC, WAV, AIFF, Ogg Vorbis, Opus, WMA, AC3 and more. WavPack works on Windows.
 - **Mac media keys and Now Playing:** F7, F8 and F9, headphone buttons and Control Center can play, pause and skip tracks.

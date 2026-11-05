@@ -1348,3 +1348,15 @@ void NPlaylistWidget::sortByColumn(int column)
     applyOrder(sorted);
 }
 // << Sorting by column
+
+QList<NPlaylistDataItem> NPlaylistWidget::selectedDataItems() const
+{
+    QList<NPlaylistDataItem> items;
+    for (int i = 0; i < count(); ++i) {
+        NPlaylistWidgetItem *it = itemAtRow(i);
+        if (it->isSelected()) {
+            items << it->dataItem();
+        }
+    }
+    return items;
+}
