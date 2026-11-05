@@ -16,6 +16,7 @@
 #include "player.h"
 
 #include <QFile>
+#include <QTimer>
 
 #include <QDir>
 
@@ -69,7 +70,10 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMenu>
+#include <QCheckBox>
+#include <QInputDialog>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QMetaObject>
 #include <QResizeEvent>
 #include <QToolTip>
@@ -474,6 +478,9 @@ void NPlayer::loadDefaultPlaylist()
             m_waveformSlider->setValue(pos);
             m_waveformSlider->setPausedState(true);
             m_trackInfoWidget->updateFileLabels(file);
+            // the engine doesn't report a media change until playback starts,
+            // so tell the skin to show this track's title, artist and details
+            QTimer::singleShot(0, this, [this]() { emit trackInfoChanged(); });
         }
     }
 }
@@ -895,30 +902,178 @@ void NPlayer::showOpenDirDialog()
 
 void NPlayer::showSavePlaylistDialog()
 {
-    QString selectedFilter;
-    QString file = QFileDialog::getSaveFileName(m_mainWindow, tr("Save Playlist"),
-                                                m_settings->value("LastDirectory").toString(),
-                                                tr("M3U Playlist") + " (*.m3u);;" +
-                                                    tr("Extended M3U Playlist") + " (*.m3u)",
-                                                &selectedFilter);
-
+    QString folder = playlistsFolder();
+    QDir().mkpath(folder);
+    QString current = m_settings->value("CurrentPlaylistFile").toString();
+    QString start = current.isEmpty() ? folder + "/" + tr("Untitled") + ".m3u8" : current;
+    QString file = QFileDialog::getSaveFileName(m_mainWindow, tr("Save Playlist As"), start,
+                                                tr("Playlist") + " (*.m3u8 *.m3u)");
     if (file.isEmpty()) {
         return;
     }
-
-    QString lastDir = QFileInfo(file).path();
-    m_settings->setValue("LastDirectory", lastDir);
-
-    if (!file.endsWith(".m3u")) {
-        file.append(".m3u");
+    if (!file.endsWith(".m3u8", Qt::CaseInsensitive) && !file.endsWith(".m3u", Qt::CaseInsensitive)) {
+        file.append(".m3u8");
     }
+    // extended M3U (#EXTINF) in UTF-8: readable by rekordbox, Serato, Engine DJ and most players
+    writePlaylist(file, N::ExtM3u);
+    rememberPlaylist(file);
+}
 
-    if (selectedFilter.startsWith("Extended")) {
-        writePlaylist(file, N::ExtM3u);
-    } else {
-        writePlaylist(file, N::MinimalM3u);
+// Playlists >>
+
+QString NPlayer::playlistsFolder() const
+{
+    QString folder = m_settings->value("PlaylistsFolder").toString();
+    if (folder.startsWith("~/")) {
+        folder = QDir::homePath() + folder.mid(1);
+    }
+    return QDir::cleanPath(folder);
+}
+
+QStringList NPlayer::savedPlaylists() const
+{
+    QDir dir(playlistsFolder());
+    QStringList files;
+    for (const QFileInfo &info :
+         dir.entryInfoList(QStringList() << "*.m3u8" << "*.m3u", QDir::Files, QDir::Name | QDir::IgnoreCase)) {
+        files << info.absoluteFilePath();
+    }
+    return files;
+}
+
+QStringList NPlayer::recentPlaylists() const
+{
+    QStringList recent;
+    for (const QString &file : m_settings->value("RecentPlaylists").toStringList()) {
+        if (QFileInfo(file).isFile()) {
+            recent << file;
+        }
+    }
+    return recent;
+}
+
+void NPlayer::rememberPlaylist(const QString &file)
+{
+    m_settings->setValue("CurrentPlaylistFile", file);
+    QStringList recent = m_settings->value("RecentPlaylists").toStringList();
+    recent.removeAll(file);
+    recent.prepend(file);
+    while (recent.size() > 10) {
+        recent.removeLast();
+    }
+    m_settings->setValue("RecentPlaylists", recent);
+}
+
+void NPlayer::savePlaylist()
+{
+    QString current = m_settings->value("CurrentPlaylistFile").toString();
+    if (current.isEmpty() || !QFileInfo(QFileInfo(current).path()).isDir()) {
+        showSavePlaylistDialog();
+        return;
+    }
+    writePlaylist(current, N::ExtM3u);
+    rememberPlaylist(current);
+}
+
+void NPlayer::showOpenPlaylistDialog()
+{
+    QString folder = playlistsFolder();
+    QDir().mkpath(folder);
+    QString file = QFileDialog::getOpenFileName(m_mainWindow, tr("Open Playlist"), folder,
+                                                tr("Playlist") + " (*.m3u8 *.m3u)");
+    if (!file.isEmpty()) {
+        openPlaylist(file);
     }
 }
+
+void NPlayer::openPlaylist(const QString &file)
+{
+    QList<NPlaylistDataItem> items = NPlaylistStorage::readM3u(file);
+    if (items.isEmpty()) {
+        QMessageBox::warning(m_mainWindow, tr("Open Playlist"),
+                             tr("\"%1\" has no tracks, or couldn't be read.").arg(QFileInfo(file).fileName()));
+        return;
+    }
+
+    QString behaviour = m_settings->value("OpenPlaylistBehaviour").toString(); // ask, replace, add
+    if (m_playlistWidget->count() == 0) {
+        behaviour = "replace"; // nothing to lose
+    }
+    if (behaviour != "replace" && behaviour != "add") {
+        QMessageBox box(m_mainWindow);
+        box.setIcon(QMessageBox::Question);
+        box.setWindowTitle(tr("Open Playlist"));
+        box.setText(tr("Open \"%1\" (%n track(s))", "", items.size())
+                        .arg(QFileInfo(file).completeBaseName()));
+        box.setInformativeText(tr("Replace the current list, or add these tracks to the end of it?"));
+        QPushButton *replace = box.addButton(tr("Replace"), QMessageBox::AcceptRole);
+        QPushButton *add = box.addButton(tr("Add to Current List"), QMessageBox::AcceptRole);
+        box.addButton(QMessageBox::Cancel);
+        box.setDefaultButton(replace);
+        QCheckBox remember(tr("Don't ask again (change this in Preferences)"));
+        box.setCheckBox(&remember);
+        box.exec();
+        if (box.clickedButton() == replace) {
+            behaviour = "replace";
+        } else if (box.clickedButton() == add) {
+            behaviour = "add";
+        } else {
+            return;
+        }
+        if (remember.isChecked()) {
+            m_settings->setValue("OpenPlaylistBehaviour", behaviour);
+        }
+    }
+
+    if (behaviour == "replace") {
+        m_playlistWidget->setItems(items);
+        rememberPlaylist(file); // Save now updates this playlist
+    } else {
+        m_playlistWidget->addItems(items);
+        QStringList recent = m_settings->value("RecentPlaylists").toStringList();
+        recent.removeAll(file);
+        recent.prepend(file);
+        m_settings->setValue("RecentPlaylists", QStringList(recent.mid(0, 10)));
+    }
+}
+
+void NPlayer::addSelectionToPlaylist(const QString &file)
+{
+    QList<NPlaylistDataItem> selected = m_playlistWidget->selectedDataItems();
+    if (selected.isEmpty()) {
+        return;
+    }
+    QList<NPlaylistDataItem> items = NPlaylistStorage::readM3u(file);
+    items << selected;
+    NPlaylistStorage::writeM3u(file, items, N::ExtM3u);
+}
+
+void NPlayer::addSelectionToNewPlaylist()
+{
+    if (m_playlistWidget->selectedDataItems().isEmpty()) {
+        return;
+    }
+    bool ok = false;
+    QString name = QInputDialog::getText(m_mainWindow, tr("New Playlist"), tr("Playlist name:"),
+                                         QLineEdit::Normal, QString(), &ok)
+                       .trimmed();
+    if (!ok || name.isEmpty()) {
+        return;
+    }
+    name.replace(QRegExp("[/\\\\:*?\"<>|]"), "-"); // keep it a valid file name everywhere
+    QString folder = playlistsFolder();
+    QDir().mkpath(folder);
+    QString file = folder + "/" + name + ".m3u8";
+    if (QFileInfo::exists(file)) {
+        if (QMessageBox::question(m_mainWindow, tr("New Playlist"),
+                                  tr("\"%1\" already exists. Add the tracks to it?").arg(name)) !=
+            QMessageBox::Yes) {
+            return;
+        }
+    }
+    addSelectionToPlaylist(file);
+}
+// << Playlists
 
 void NPlayer::showContextMenu(const QPoint &pos)
 {
@@ -1058,5 +1213,6 @@ void NPlayer::handleBpmDetected(const QString &file, qreal bpm)
     NPlaylistWidgetItem *playing = m_playlistWidget->playingItem();
     if (playing && playing->data(N::PathRole).toString() == file) {
         m_trackInfoWidget->updateFileLabels(file);
+        emit trackInfoChanged();
     }
 }

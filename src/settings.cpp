@@ -92,10 +92,14 @@ NSettings::NSettings(QObject *parent)
     initValue("PlaylistTrackInfo", "%F{ (%d)}");
     initValue("PlaylistColumns", true);
     // one entry per column: "Header|track info format[|r]" ("r" = right-aligned)
+    // every catalogue column except Year, Track and Bitrate
     initValue("PlaylistColumnsFormat", QStringList() << "Artist|%a"
                                                      << "Title|{%t|%F}"
                                                      << "Album|%A"
+                                                     << "Genre|%g"
                                                      << "BPM|%M|r"
+                                                     << "Key|%k"
+                                                     << "Label|%l"
                                                      << "Duration|%d|r");
     initValue("PlaylistColumnSizes", QStringList());
     initValue("WindowTitleTrackInfo",
@@ -136,17 +140,21 @@ NSettings::NSettings(QObject *parent)
     initValue("Volume", 0.8);
     initValue("ShowDecibelsVolume", false);
     initValue("WaveformRgb", true);
-    initValue("WaveformColorScheme", QString("rgb")); // rgb, vivid, accent
-    initValue("AccentColor", QString("#3D8BFF"));
+    initValue("WaveformColorScheme", QString("vivid")); // rgb, vivid, accent
+    initValue("AccentColor", QString("#FF8A3D")); // orange
     initValue("AmbientBackground", true);
     initValue("BpmDetection", true);
+    initValue("PlaylistsFolder", QString("~/Music/TrackDeck Playlists"));
+    initValue("OpenPlaylistBehaviour", QString("ask")); // ask, replace, add
+    initValue("RecentPlaylists", QStringList());
+    initValue("CurrentPlaylistFile", QString());
     initValue("Visualiser", true);
-    initValue("VisualiserStyle", "bars");
+    initValue("VisualiserStyle", "curve");
     initValue("VisualiserDensity", "normal");
     initValue("VisualiserSensitivity", "normal");
     initValue("VisualiserTrebleBoost", "normal");
     initValue("VisualiserFallSpeed", "normal");
-    initValue("VisualiserPeaks", true);
+    initValue("VisualiserPeaks", false);
     initValue("VisualiserFrameRate", 30);
     initValue("VisualiserColors", "waveform");
     initValue("VisualiserGradientFrom", "#FF3D9A");

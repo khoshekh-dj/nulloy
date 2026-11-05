@@ -1,3 +1,13 @@
+* 1.2.0, Thu Nov 5 2026
+- Fix: the app froze (beach ball) while tracks in iCloud Drive or other cloud folders downloaded; they're now fetched in the background
+- Fix: a click with a slight mouse movement started a drag, which could hang with tracks on a disconnected drive and remove tracks from the playlist
+- Fix: with Start paused on, the restored track showed "Drop music here to start" in the header
+- Fix: a BPM detected while a track played didn't appear on the track info line
+- New: playlists: Open Playlist (Cmd+L), Open Recent, Save (Cmd+S) / Save As (Shift+Cmd+S), and right-click Add to Playlist; .m3u8 files in ~/Music/TrackDeck Playlists; opening asks Replace / Add, with a default in Preferences
+- New: detected BPMs are marked with * (e.g. 126.1*) so they can be told apart from tagged ones
+- New defaults for fresh installs: Genre, Key and Label columns; Vivid waveform; orange accent; smooth-curve visualiser without peak caps
+- Website: https://khoshekh-dj.github.io/trackdeck/
+
 * 1.1.0, Wed Nov 4 2026
 - New: live spectrum visualiser next to the track info (Modern and Khoshekh skins), with its own Preferences tab: style (bars, LED segments, mirrored, smooth curve), density, sensitivity, treble boost, fall speed, 30/60 fps, peak caps, colours
 - New: BPM detection with aubio for tracks without a BPM tag (tracks under 15 minutes), cached so each track is analysed once

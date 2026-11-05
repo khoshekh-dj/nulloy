@@ -36,6 +36,8 @@
 #include <QApplication>
 #include <QGroupBox>
 #include <QColorDialog>
+#include <QDir>
+#include <QFileDialog>
 #include <QComboBox>
 #include <QListWidget>
 #include <QMessageBox>
@@ -144,6 +146,22 @@ NPreferencesDialog::NPreferencesDialog(NPlayer *player, QWidget *parent) : QDial
     });
     connect(ui.playlistColumnsCheckBox, &QCheckBox::toggled, ui.playlistColumnsList,
             &QWidget::setEnabled);
+
+    // playlists >>
+    ui.openPlaylistBehaviourComboBox->addItem(tr("Ask each time"), "ask");
+    ui.openPlaylistBehaviourComboBox->addItem(tr("Replace the current list"), "replace");
+    ui.openPlaylistBehaviourComboBox->addItem(tr("Add to the current list"), "add");
+    connect(ui.playlistsFolderBrowseButton, &QPushButton::clicked, [this]() {
+        QString current = ui.playlistsFolderLineEdit->text();
+        if (current.startsWith("~/")) {
+            current = QDir::homePath() + current.mid(1);
+        }
+        QString dir = QFileDialog::getExistingDirectory(this, tr("Playlists Folder"), current);
+        if (!dir.isEmpty()) {
+            ui.playlistsFolderLineEdit->setText(dir);
+        }
+    });
+    // << playlists
 
     // visualiser >>
     for (const _VisualiserOption &option : _visualiserOptions) {
@@ -421,7 +439,7 @@ void NPreferencesDialog::on_titleFormatHelpButton_clicked()
             "<li><b>%B</b> - " + tr("Bitrate in Kbps") + "</li>" +
             "<li><b>%s</b> - " + tr("Sample rate in kHz") + "</li>" +
             "<li><b>%H</b> - " + tr("Number of channels") + "</li>" +
-            "<li><b>%M</b> - " + tr("BPM (beats per minute)") + "</li>" +
+            "<li><b>%M</b> - " + tr("BPM (beats per minute); a * means TrackDeck detected it") + "</li>" +
             "<li><b>%k</b> - " + tr("Musical key") + "</li>" +
             "<li><b>%l</b> - " + tr("Record label") + "</li>" +
             "<li><b>%f</b> - " + tr("File name without extension") + "</li>" +
@@ -627,6 +645,11 @@ void NPreferencesDialog::loadSettings()
     }
     // << waveform colours & accent
 
+    // playlists >>
+    ui.openPlaylistBehaviourComboBox->setCurrentIndex(qMax(0, ui.openPlaylistBehaviourComboBox->findData(
+        NSettings::instance()->value("OpenPlaylistBehaviour").toString())));
+    // << playlists
+
     // visualiser >>
     for (const _VisualiserOption &option : _visualiserOptions) {
         QComboBox *combo = findChild<QComboBox *>(option.combo);
@@ -816,6 +839,11 @@ void NPreferencesDialog::saveSettings()
         }
     }
     // << waveform colours & accent
+
+    // playlists >>
+    NSettings::instance()->setValue("OpenPlaylistBehaviour",
+                                    ui.openPlaylistBehaviourComboBox->currentData());
+    // << playlists
 
     // visualiser >>
     for (const _VisualiserOption &option : _visualiserOptions) {

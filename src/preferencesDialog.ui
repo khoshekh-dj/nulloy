@@ -991,6 +991,55 @@ padding: 5px;</string>
             </widget>
            </item>
            <item>
+            <widget class="QWidget" name="playlistsContainer" native="true">
+             <layout class="QGridLayout" name="playlistsLayout">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>10</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="playlistsFolderLabel">
+                <property name="text">
+                 <string>Playlists folder:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="playlistsFolderLineEdit"/>
+              </item>
+              <item row="0" column="2">
+               <widget class="QPushButton" name="playlistsFolderBrowseButton">
+                <property name="text">
+                 <string>Browse...</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="openPlaylistBehaviourLabel">
+                <property name="text">
+                 <string>When opening a playlist:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1" colspan="2">
+               <widget class="QComboBox" name="openPlaylistBehaviourComboBox">
+                <property name="sizeAdjustPolicy">
+                 <enum>QComboBox::AdjustToContents</enum>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
             <widget class="QWidget" name="fileFiltersContainer" native="true">
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <property name="leftMargin">
@@ -1226,7 +1275,7 @@ padding: 5px;</string>
        <item>
         <widget class="QCheckBox" name="bpmDetectionCheckBox">
          <property name="text">
-          <string>Detect BPM for tracks without a BPM tag (tracks under 15 minutes)</string>
+          <string>Detect BPM for tracks without a BPM tag (tracks under 15 minutes; shown with a *)</string>
          </property>
         </widget>
        </item>
