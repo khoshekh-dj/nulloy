@@ -91,7 +91,12 @@ QString NCore::rcDir()
         QDir programFilesDirX86(
             registryMachine.value("ProgramFilesDir (x86)", "C:/Program Files (x86)").toString());
 
-        if (parentDir == programFilesDir || parentDir == programFilesDirX86) {
+        // Per-user installs (the installer's default) go to %LocalAppData%\Programs
+        QString localAppData = QProcessEnvironment::systemEnvironment().value("LocalAppData");
+        bool userPrograms = !localAppData.isEmpty()
+                            && parentDir == QDir(localAppData + "/Programs");
+
+        if (parentDir == programFilesDir || parentDir == programFilesDirX86 || userPrograms) {
             QString appData = QProcessEnvironment::systemEnvironment().value("AppData");
             if (appData != "")
                 _rcDir = appData + "/" + N_APP_NAME;
