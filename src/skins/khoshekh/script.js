@@ -18,6 +18,8 @@ function Main()
         PlaybackEngine["stateChanged(N::PlaybackState)"].connect(this, "on_stateChanged");
         PlaybackEngine["mediaChanged(const QString &, int)"].connect(this, "on_mediaChanged");
         Player["trackInfoChanged()"].connect(this, "updateTrackLabels"); // e.g. BPM detected
+        Player["ambientImageChanged(QString)"].connect(this, "on_ambientImageChanged");
+        Settings["valueChanged(QString,QVariant)"].connect(this, "on_settingChanged");
 
         Ui.mainWindow["newTitle(const QString &)"].connect(this, "setTitle");
         Ui.mainWindow["fullScreenEnabled(bool)"].connect(this, "on_fullScreenEnabled");
@@ -65,6 +67,11 @@ Main.prototype.afterShow = function()
     Ui.menuButton["clicked()"].connect(this, "showMenu");
     this.updateTrackLabels();
     this.on_resized();
+
+    // the skin's stylesheet, before accent/ambient changes are applied to it
+    this.baseStyleSheet = Ui.mainWindow.styleSheet;
+    this.ambientImage = Player.ambientImage();
+    this.applyStyle();
 }
 
 Main.prototype.showMenu = function()
@@ -172,5 +179,84 @@ Main.prototype.setBorderVisible = function(enabled)
         Ui.borderWidget.layout().setContentsMargins(0, 0, 0, 0);
     } else {
         Ui.borderWidget.layout().setContentsMargins(this.marginsBkp_);
+    }
+}
+
+// --- accent colour & album-art background ----------------------------------
+
+function hexToRgb(hex)
+{
+    hex = String(hex).replace("#", "");
+    return [parseInt(hex.substr(0, 2), 16), parseInt(hex.substr(2, 2), 16), parseInt(hex.substr(4, 2), 16)];
+}
+
+function rgbToHex(rgb)
+{
+    var s = "#";
+    for (var i = 0; i < 3; ++i) {
+        var v = Math.max(0, Math.min(255, Math.round(rgb[i]))).toString(16).toUpperCase();
+        s += (v.length < 2 ? "0" : "") + v;
+    }
+    return s;
+}
+
+// t > 0 mixes towards white, t < 0 towards black
+function shade(rgb, t)
+{
+    var target = t > 0 ? 255 : 0;
+    var k = Math.abs(t);
+    return [rgb[0] + (target - rgb[0]) * k, rgb[1] + (target - rgb[1]) * k, rgb[2] + (target - rgb[2]) * k];
+}
+
+function replaceAll(text, from, to)
+{
+    return text.split(from).join(to);
+}
+
+Main.prototype.applyStyle = function()
+{
+    if (this.baseStyleSheet === undefined) {
+        return;
+    }
+    var sheet = this.baseStyleSheet;
+
+    // The skin's accents are teal; swap in the chosen accent colour. The navy
+    // backgrounds (#05070F, #0A1420, #0E2630, #12303A) keep the night-sky look.
+    var accent = String(Settings.value("AccentColor") || "#2F8F9A");
+    if (/^#[0-9A-Fa-f]{6}$/.test(accent) && accent.toUpperCase() != "#2F8F9A") {
+        var rgb = hexToRgb(accent);
+        sheet = replaceAll(sheet, "#2F8F9A", rgbToHex(rgb));               // accent
+        sheet = replaceAll(sheet, "#3FA9B5", rgbToHex(shade(rgb, 0.18)));  // hover, wave outline
+        sheet = replaceAll(sheet, "#24707A", rgbToHex(shade(rgb, -0.18))); // pressed
+        sheet = replaceAll(sheet, "#6CC3CC", rgbToHex(shade(rgb, 0.35)));  // light text
+        sheet = replaceAll(sheet, "#1E5F6E", rgbToHex(shade(rgb, -0.35))); // deep accent
+        sheet = replaceAll(sheet, "rgba(47, 143, 154,",
+                           "rgba(" + rgb[0] + ", " + rgb[1] + ", " + rgb[2] + ",");
+    }
+
+    // blurred album art behind a semi-transparent player, tinted navy
+    if (this.ambientImage) {
+        // NB: written as "url" + "(" so the skin loader, which rewrites every
+        // literal url( in skin files to url(skin:...), leaves this path alone
+        sheet += "\n#borderWidget { background: #05070F url" + "(\"" + this.ambientImage + "\") no-repeat center center; }"
+               + "\n#splitter, #splitTop, #splitter::handle { background: transparent; }"
+               + "\n#playlistWidget { background: rgba(2, 4, 10, 110); }"
+               + "\n#coverWidget { background: rgba(10, 20, 32, 120); }"
+               + "\n#waveformSlider { qproperty-background: rgba(10, 20, 32, 125); }";
+    }
+
+    Ui.mainWindow.styleSheet = sheet;
+}
+
+Main.prototype.on_ambientImageChanged = function(path)
+{
+    this.ambientImage = path;
+    this.applyStyle();
+}
+
+Main.prototype.on_settingChanged = function(key, value)
+{
+    if (key == "AccentColor") {
+        this.applyStyle();
     }
 }
