@@ -21,6 +21,8 @@
 #include <QDrag>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QPointer>
+#include <QRegExp>
 #include <QHeaderView>
 #include <QMap>
 #include <QScrollBar>
@@ -28,6 +30,10 @@
 #include <QStandardItemModel>
 
 #include <algorithm>
+#include <thread>
+#ifdef Q_OS_MAC
+#include <sys/stat.h>
+#endif
 
 #include "action.h"
 #include "playbackEngineInterface.h"
@@ -70,6 +76,8 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_playingItem = NULL;
 
     m_itemDrag = NULL;
+    m_fetchRunning = 0;
+    m_sortWaitingForFetch = false;
     m_pressOnItem = false;
     m_fileDrop = false;
     m_dragStart = DragStartInside;
@@ -499,6 +507,26 @@ bool NPlaylistWidget::refreshItemData(NPlaylistWidgetItem *item, QString titleFo
     }
 
     QString file = item->data(N::PathRole).toString();
+    if (needsFetch(file)) {
+        // show the file name until the file is available; the row is
+        // refreshed when the background fetch finishes
+        if (item->text().isEmpty()) {
+            item->setText(QFileInfo(file).fileName());
+        }
+        if (m_columnsMode && item->data(N::ColumnsRole).toStringList().isEmpty()) {
+            QStringList columns;
+            for (int i = 0; i < m_columnFormats.size(); ++i) {
+                columns << QString();
+            }
+            int titleColumn = qMax(0, m_columnFormats.indexOf(QRegExp(".*%t.*")));
+            if (!columns.isEmpty()) {
+                columns[titleColumn] = QFileInfo(file).fileName();
+            }
+            item->setData(N::ColumnsRole, columns);
+        }
+        return false;
+    }
+
     QString title;
     if (m_trackInfoReader) {
         m_trackInfoReader->setSource(file);
@@ -1243,6 +1271,7 @@ void NPlaylistWidget::updateSortIndicator()
 
 void NPlaylistWidget::clearSortState()
 {
+    m_sortWaitingForFetch = false;
     m_presortOrder.clear();
     if (m_sortColumn != -1) {
         m_sortColumn = -1;
@@ -1285,6 +1314,7 @@ void NPlaylistWidget::sortByColumn(int column)
 
     // clicks cycle: ascending -> descending -> back to the order before sorting
     if (column == m_sortColumn && m_sortOrder == Qt::DescendingOrder) {
+        m_sortWaitingForFetch = false;
         QList<QListWidgetItem *> original = m_presortOrder;
         m_presortOrder.clear();
         m_sortColumn = -1;
@@ -1296,20 +1326,40 @@ void NPlaylistWidget::sortByColumn(int column)
     }
     Qt::SortOrder order = column == m_sortColumn ? Qt::DescendingOrder : Qt::AscendingOrder;
 
+    if (m_sortColumn == -1) {
+        m_presortOrder.clear();
+        for (int i = 0; i < count(); ++i) {
+            m_presortOrder << item(i);
+        }
+    }
+    m_sortColumn = column;
+    m_sortOrder = order;
+    updateSortIndicator();
+
+    // every row needs its column values, not only the visible ones; files
+    // still being fetched from the cloud are sorted once they arrive
+    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+    for (int i = 0; i < count(); ++i) {
+        refreshItemData(itemAtRow(i), titleFormat);
+    }
+    if (!m_fetchPending.isEmpty()) {
+        m_sortWaitingForFetch = true;
+        return;
+    }
+    sortRows(column, order);
+}
+
+void NPlaylistWidget::sortRows(int column, Qt::SortOrder order)
+{
+    m_sortWaitingForFetch = false;
+    if (column < 0 || column >= m_columnFormats.size()) {
+        return;
+    }
     QList<QListWidgetItem *> items;
     for (int i = 0; i < count(); ++i) {
         items << item(i);
     }
-    if (m_sortColumn == -1) {
-        m_presortOrder = items;
-    }
-
-    // every row needs its column values, not only the visible ones
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
-    for (QListWidgetItem *item : items) {
-        refreshItemData(static_cast<NPlaylistWidgetItem *>(item), titleFormat);
-    }
 
     SortKind kind = sortKindForFormat(m_columnFormats.at(column));
     struct Entry
@@ -1369,9 +1419,77 @@ void NPlaylistWidget::sortByColumn(int column)
     for (const Entry &e : entries) {
         sorted << e.item;
     }
-    m_sortColumn = column;
-    m_sortOrder = order;
-    updateSortIndicator();
     applyOrder(sorted);
 }
 // << Sorting by column
+
+// Background fetching of cloud files >>
+
+bool NPlaylistWidget::needsFetch(const QString &file)
+{
+    if (file.isEmpty() || m_readyFiles.contains(file)) {
+        return false;
+    }
+    bool cloud = file.contains("/Library/Mobile Documents/") || file.contains("/Library/CloudStorage/");
+#ifdef Q_OS_MAC
+    struct stat st;
+    if (::stat(QFile::encodeName(file).constData(), &st) == 0 && (st.st_flags & SF_DATALESS)) {
+        cloud = true; // offloaded by macOS: reading it downloads it
+    }
+#endif
+    if (!cloud) {
+        m_readyFiles.insert(file);
+        return false;
+    }
+    if (!m_fetchPending.contains(file)) {
+        m_fetchPending.insert(file);
+        m_fetchQueue.append(file);
+        startFetches();
+    }
+    return true;
+}
+
+void NPlaylistWidget::startFetches()
+{
+    const int maxRunning = 2;
+    while (m_fetchRunning < maxRunning && !m_fetchQueue.isEmpty()) {
+        QString file = m_fetchQueue.takeFirst();
+        ++m_fetchRunning;
+        QPointer<NPlaylistWidget> self(this);
+        // a plain detached thread: quitting never waits for a download
+        std::thread([file, self]() {
+            // reading from a cloud file makes the system bring it down;
+            // read the start and the end, where the tags live
+            QFile f(file);
+            if (f.open(QIODevice::ReadOnly)) {
+                f.read(64 * 1024);
+                if (f.size() > 64 * 1024) {
+                    f.seek(f.size() - 64 * 1024);
+                    f.read(64 * 1024);
+                }
+            }
+            QMetaObject::invokeMethod(
+                QCoreApplication::instance(),
+                [file, self]() {
+                    if (self) {
+                        self->fileFetched(file);
+                    }
+                },
+                Qt::QueuedConnection);
+        }).detach();
+    }
+}
+
+void NPlaylistWidget::fileFetched(const QString &file)
+{
+    --m_fetchRunning;
+    m_fetchPending.remove(file);
+    m_readyFiles.insert(file);
+    refreshItemsForFile(file);
+    startFetches();
+    if (m_sortWaitingForFetch && m_fetchPending.isEmpty()) {
+        sortRows(m_sortColumn, m_sortOrder);
+    }
+    emit itemsChanged();
+}
+// << Background fetching of cloud files
