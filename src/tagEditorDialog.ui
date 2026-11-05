@@ -141,7 +141,7 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,0,1">
+            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,0,1,0,1">
              <item>
               <widget class="QLineEdit" name="trackNumberTagLineEdit"/>
              </item>
@@ -154,6 +154,16 @@
              </item>
              <item>
               <widget class="QLineEdit" name="bpmTagLineEdit"/>
+             </item>
+             <item>
+              <widget class="QLabel" name="keyTagLabel">
+               <property name="text">
+                <string>Key:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="keyTagLineEdit"/>
              </item>
             </layout>
            </item>
@@ -231,53 +241,73 @@
               <enum>QFormLayout::ExpandingFieldsGrow</enum>
              </property>
              <item row="0" column="0">
-              <widget class="QLabel" name="publisherTagLabel">
+              <widget class="QLabel" name="albumArtistTagLabel">
                <property name="text">
-                <string>Publisher:</string>
+                <string>Album artist:</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QLineEdit" name="publisherTagLineEdit"/>
+              <widget class="QLineEdit" name="albumArtistTagLineEdit"/>
              </item>
              <item row="1" column="0">
+              <widget class="QLabel" name="remixerTagLabel">
+               <property name="text">
+                <string>Remixer:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="remixerTagLineEdit"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="labelTagLabel">
+               <property name="text">
+                <string>Label:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLineEdit" name="labelTagLineEdit"/>
+             </item>
+             <item row="3" column="0">
               <widget class="QLabel" name="composerTagLabel">
                <property name="text">
                 <string>Composer:</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="3" column="1">
               <widget class="QLineEdit" name="composerTagLineEdit"/>
              </item>
-             <item row="2" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="copyrightTagLabel">
                <property name="text">
                 <string>Copyright:</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="4" column="1">
               <widget class="QLineEdit" name="copyrightTagLineEdit"/>
              </item>
-             <item row="3" column="0">
+             <item row="5" column="0">
               <widget class="QLabel" name="urlTagLabel">
                <property name="text">
                 <string>URL:</string>
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
+             <item row="5" column="1">
               <widget class="QLineEdit" name="urlTagLineEdit"/>
              </item>
-             <item row="4" column="0">
+             <item row="6" column="0">
               <widget class="QLabel" name="encodedByTagLabel">
                <property name="text">
                 <string>Encoded by:</string>
                </property>
               </widget>
              </item>
-             <item row="4" column="1">
+             <item row="6" column="1">
               <widget class="QLineEdit" name="encodedByTagLineEdit"/>
              </item>
             </layout>

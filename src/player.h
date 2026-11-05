@@ -113,7 +113,7 @@ public slots:
     void toggleWindowVisibility();
     void showAboutDialog();
     void showPreferencesDialog();
-    void showTagEditor(const QString &path);
+    void showTagEditor(const QStringList &files);
     void showOpenFileDialog();
     void showOpenDirDialog();
     void showSavePlaylistDialog(); // "Save Playlist As..."

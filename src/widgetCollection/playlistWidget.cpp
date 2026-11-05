@@ -1133,6 +1133,19 @@ void NPlaylistWidget::setFileDropRadius(int radius)
 }
 // << STYLESHEET PROPERTIES
 
+void NPlaylistWidget::refreshItemsForFiles(const QStringList &files)
+{
+    QSet<QString> wanted(files.begin(), files.end());
+    QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();
+    for (int row = 0; row < count(); ++row) {
+        NPlaylistWidgetItem *item = itemAtRow(row);
+        if (item && wanted.contains(item->data(N::PathRole).toString())) {
+            refreshItemData(item, titleFormat, true);
+        }
+    }
+    viewport()->update();
+}
+
 void NPlaylistWidget::refreshItemsForFile(const QString &file)
 {
     QString titleFormat = NSettings::instance()->value("PlaylistTrackInfo").toString();

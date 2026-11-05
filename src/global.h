@@ -84,11 +84,14 @@ public:
         DateTag,
         GenreTag,
         CommentTag,
-        PublisherTag,
+        LabelTag,
         ComposerTag,
         CopyrightTag,
         UrlTag,
         EncodedByTag,
+        KeyTag,
+        AlbumArtistTag,
+        RemixerTag,
     };
 
     enum PlaylistRole

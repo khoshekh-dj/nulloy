@@ -21,42 +21,99 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDir>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMap>
 #include <QMessageBox>
 #include <QMetaEnum>
+#include <QProgressDialog>
 #include <QPushButton>
+#include <QTabBar>
 #include <QTextEdit>
 
-NTagEditorDialog::NTagEditorDialog(const QString &file, QWidget *parent) : QDialog(parent)
+#ifdef Q_OS_MAC
+#include <sys/stat.h>
+#endif
+#ifdef Q_OS_WIN
+#include <windows.h>
+#ifndef FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS
+#define FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS 0x00400000
+#endif
+#endif
+
+NTagEditorDialog::NTagEditorDialog(const QStringList &files, QWidget *parent) : QDialog(parent)
 {
     ui.setupUi(this);
+    // give the right-hand fields (Album artist, Label...) room as well
+    ui.splitter->setStretchFactor(0, 3);
+    ui.splitter->setStretchFactor(1, 2);
+    ui.splitter->setSizes(QList<int>() << 450 << 300);
 
-    m_file = file;
+    m_valid = false;
+    m_hasChanges = false;
+    m_loading = false;
+    m_encodingUtf8Index = -1;
+    m_encodingPreviousIndex = 0;
+    m_encodingSettingsIndex = 0;
+
     m_tagReader = dynamic_cast<NTagReaderInterface *>(NPluginLoader::getPlugin(N::TagReader));
+    m_tagReader->setId3v2Version(NSettings::instance()->value("TagEditorID3v2Version").toInt());
 
     QString settingsEncoding = NSettings::instance()->value("EncodingTrackInfo").toString();
     m_tagReader->setEncoding(settingsEncoding);
-    m_tagReader->setSource(m_file);
 
-    QMap<QString, QStringList> tags = m_tagReader->getTags();
-    m_tagReader->setSource(""); // release the file
-    if (!tags.isEmpty()) {
-        if (tags.value("Error").join("") == "Invalid") {
-            QMessageBox msgBox(QMessageBox::Information, tr("Unsupported File"),
-                               tr("This file format does not support tags.") +
-                                   QString("%1").arg(" ", 20, ' '),
-                               QMessageBox::Close, parent);
-            msgBox.exec();
-            reject();
-            return;
+    // leave out the files that can't be edited right now
+    QStringList editable;
+    QStringList skipped;
+    for (const QString &file : files) {
+        QString reason;
+        if (isReadable(file, &reason)) {
+            m_tagReader->setSource(file);
+            if (m_tagReader->getTags().value("Error").join("") == "Invalid") {
+                reason = tr("this file type doesn't have tags");
+            }
+            m_tagReader->setSource(""); // release the file
         }
+        if (reason.isEmpty()) {
+            editable << file;
+        } else {
+            skipped << QFileInfo(file).fileName() + " (" + reason + ")";
+        }
+    }
+    if (!skipped.isEmpty()) {
+        QMessageBox msgBox(QMessageBox::Information, tr("Tag Editor"),
+                           editable.isEmpty()
+                               ? tr("These tracks can't be edited right now:")
+                               : tr("%n track(s) will be left out:", "", skipped.size()),
+                           QMessageBox::Ok, parent);
+        QStringList shown = skipped.mid(0, 12);
+        if (skipped.size() > shown.size()) {
+            shown << tr("and %n more", "", skipped.size() - shown.size());
+        }
+        msgBox.setInformativeText(shown.join("\n"));
+        msgBox.exec();
+    }
+    if (editable.isEmpty()) {
+        return;
     }
 
     connect(ui.buttonBox->button(QDialogButtonBox::Save), SIGNAL(clicked()), this,
             SLOT(onSaveClicked()));
+    ui.buttonBox->button(QDialogButtonBox::Reset)->setText(tr("Revert"));
+
+    if (editable.size() > 1) {
+        m_files = editable;
+        setupMultiTrack();
+        m_valid = true;
+        return;
+    }
+
+    m_file = editable.first();
+    QString file = m_file;
 
     m_coverReader = dynamic_cast<NCoverReaderInterface *>(NPluginLoader::getPlugin(N::CoverReader));
     m_encodingUtf8Index = -1;
@@ -106,14 +163,216 @@ NTagEditorDialog::NTagEditorDialog(const QString &file, QWidget *parent) : QDial
     m_coverReader->setSource(""); // release the file
     ui.artworkListWidget->setMinimumHeight(111);
 
-    ui.buttonBox->button(QDialogButtonBox::Reset)->setText(tr("Revert"));
     connect(ui.buttonBox->button(QDialogButtonBox::Reset), &QPushButton::clicked, [=] {
         ui.encodingComboBox->setCurrentIndex(m_encodingSettingsIndex);
         readTags();
         setReadOnlyMode(ui.encodingComboBox->currentIndex() != m_encodingUtf8Index);
     });
 
-    exec();
+    m_valid = true;
+}
+
+bool NTagEditorDialog::isReadable(const QString &file, QString *reason)
+{
+    QString why;
+    QFileInfo info(file);
+    if (!info.exists()) {
+        why = tr("file not found");
+    } else if (!info.isWritable()) {
+        why = tr("the file is read-only");
+    }
+#ifdef Q_OS_MAC
+    struct stat st;
+    if (why.isEmpty() && ::stat(QFile::encodeName(file).constData(), &st) == 0 &&
+        (st.st_flags & SF_DATALESS)) {
+        why = tr("not downloaded from iCloud yet");
+    }
+#endif
+#ifdef Q_OS_WIN
+    DWORD attributes = GetFileAttributesW(
+        reinterpret_cast<const wchar_t *>(QDir::toNativeSeparators(file).utf16()));
+    if (why.isEmpty() && attributes != INVALID_FILE_ATTRIBUTES &&
+        (attributes & (FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS | FILE_ATTRIBUTE_OFFLINE))) {
+        why = tr("not downloaded from the cloud yet");
+    }
+#endif
+    if (reason) {
+        *reason = why;
+    }
+    return why.isEmpty();
+}
+
+QWidget *NTagEditorDialog::fieldWidget(N::Tag tag) const
+{
+    QString enumKey = ENUMERATOR(N, Tag).valueToKey(tag);
+    QString prefix = enumKey.replace(0, 1, enumKey[0].toLower());
+    if (QLineEdit *lineEdit = ui.generalTab->findChild<QLineEdit *>(prefix + "LineEdit")) {
+        return lineEdit;
+    }
+    return ui.generalTab->findChild<QPlainTextEdit *>(prefix + "PlainTextEdit");
+}
+
+void NTagEditorDialog::markChanged()
+{
+    m_hasChanges = true;
+    ui.buttonBox->button(QDialogButtonBox::Save)->setEnabled(true);
+    ui.buttonBox->button(QDialogButtonBox::Reset)->setEnabled(true);
+}
+
+void NTagEditorDialog::setupMultiTrack()
+{
+    setWindowTitle(tr("Tag Editor") + " \u2014 " + tr("%n track(s)", "", m_files.size()));
+
+    // one General page: no raw tags, encoding or artwork for several tracks
+    ui.tabWidget->removeTab(ui.tabWidget->indexOf(ui.rawTagsTab));
+    ui.tabWidget->tabBar()->hide();
+    ui.encodingFrame->hide();
+    ui.label->hide();
+    ui.artworkListWidget->hide();
+
+    QLabel *hint = new QLabel(tr("Changes apply to all %n tracks. Fields marked (various) differ "
+                                 "between them and are left as they are unless you type a new "
+                                 "value.",
+                                 "", m_files.size()));
+    hint->setWordWrap(true);
+    ui.verticalLayout->insertWidget(0, hint);
+
+    QMetaEnum enumerator = ENUMERATOR(N, Tag);
+    for (int index = 1; index < enumerator.keyCount(); ++index) { // skip UnknownTag
+        N::Tag tag = (N::Tag)enumerator.value(index);
+        QString key = m_tagReader->tagToKey(tag);
+        QWidget *widget = fieldWidget(tag);
+        if (!widget || key.isEmpty()) {
+            continue;
+        }
+        if (tag == N::TitleTag || tag == N::TrackNumberTag) {
+            // these are different for every track
+            widget->setEnabled(false);
+            widget->setToolTip(tr("Edit one track at a time to change this"));
+            continue;
+        }
+        m_fieldWidgets[key] = widget;
+        if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
+            connect(lineEdit, &QLineEdit::textEdited, [=] {
+                m_changedKeys.insert(key);
+                markChanged();
+            });
+        } else if (QPlainTextEdit *textEdit = qobject_cast<QPlainTextEdit *>(widget)) {
+            connect(textEdit, &QPlainTextEdit::textChanged, [=] {
+                if (m_loading) {
+                    return;
+                }
+                m_changedKeys.insert(key);
+                markChanged();
+            });
+        }
+    }
+
+    connect(ui.buttonBox->button(QDialogButtonBox::Reset), &QPushButton::clicked,
+            [=] { readMultiTrackTags(); });
+
+    readMultiTrackTags();
+}
+
+void NTagEditorDialog::readMultiTrackTags()
+{
+    m_loading = true;
+    m_changedKeys.clear();
+    m_mixedKeys.clear();
+
+    m_tagReader->setEncoding(NSettings::instance()->value("EncodingTrackInfo").toString());
+    QList<QMap<QString, QStringList>> allTags;
+    for (const QString &file : m_files) {
+        m_tagReader->setSource(file);
+        allTags << m_tagReader->getTags();
+    }
+    m_tagReader->setSource(""); // release the file
+
+    for (auto it = m_fieldWidgets.constBegin(); it != m_fieldWidgets.constEnd(); ++it) {
+        QSet<QString> values;
+        for (const QMap<QString, QStringList> &tags : allTags) {
+            values.insert(tags.value(it.key()).value(0));
+        }
+        bool mixed = values.size() > 1;
+        QString text = mixed ? QString() : *values.constBegin();
+        QString placeholder = mixed ? tr("(various)") : QString();
+        if (mixed) {
+            m_mixedKeys.insert(it.key());
+        }
+        if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(it.value())) {
+            lineEdit->setText(text);
+            lineEdit->setPlaceholderText(placeholder);
+        } else if (QPlainTextEdit *textEdit = qobject_cast<QPlainTextEdit *>(it.value())) {
+            textEdit->setPlainText(text);
+            textEdit->setPlaceholderText(placeholder);
+        }
+    }
+
+    m_hasChanges = false;
+    ui.buttonBox->button(QDialogButtonBox::Save)->setEnabled(false);
+    ui.buttonBox->button(QDialogButtonBox::Reset)->setEnabled(false);
+    m_loading = false;
+}
+
+bool NTagEditorDialog::writeMultiTrackTags()
+{
+    QMap<QString, QStringList> changes;
+    for (const QString &key : m_changedKeys) {
+        QWidget *widget = m_fieldWidgets.value(key);
+        QString text;
+        if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
+            text = lineEdit->text().trimmed();
+        } else if (QPlainTextEdit *textEdit = qobject_cast<QPlainTextEdit *>(widget)) {
+            text = textEdit->toPlainText().trimmed();
+        }
+        if (text.isEmpty() && m_mixedKeys.contains(key)) {
+            continue; // emptied a "different values" field: leave each track's value alone
+        }
+        changes[key] = text.isEmpty() ? QStringList() : QStringList(text);
+    }
+    if (changes.isEmpty()) {
+        return true;
+    }
+
+    QProgressDialog progress(tr("Saving tags\u2026"), tr("Stop"), 0, m_files.size(), this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(500);
+
+    QStringList failed;
+    for (int i = 0; i < m_files.size(); ++i) {
+        if (progress.wasCanceled()) {
+            break;
+        }
+        progress.setValue(i);
+        const QString &file = m_files.at(i);
+        m_tagReader->setSource(file);
+        QMap<QString, QStringList> unsaved = m_tagReader->updateTags(changes);
+        m_tagReader->setSource(""); // release the file
+        if (unsaved.isEmpty()) {
+            if (!m_savedFiles.contains(file)) {
+                m_savedFiles << file;
+            }
+        } else if (unsaved.contains("Error")) {
+            failed << QFileInfo(file).fileName() + " (" + tr("couldn't write the file") + ")";
+        } else {
+            failed << QFileInfo(file).fileName() + " (" +
+                          tr("not supported: %1").arg(unsaved.keys().join(", ")) + ")";
+        }
+    }
+    progress.setValue(m_files.size());
+
+    if (!failed.isEmpty()) {
+        QMessageBox msgBox(QMessageBox::Warning, tr("Save Fail"),
+                           tr("%n track(s) couldn't be saved:", "", failed.size()),
+                           QMessageBox::Close, this);
+        QStringList shown = failed.mid(0, 12);
+        if (failed.size() > shown.size()) {
+            shown << tr("and %n more", "", failed.size() - shown.size());
+        }
+        msgBox.setInformativeText(shown.join("\n"));
+        msgBox.exec();
+    }
+    return failed.isEmpty();
 }
 
 void NTagEditorDialog::setReadOnlyMode(bool readOnly)
@@ -326,7 +585,16 @@ void NTagEditorDialog::onSaveClicked()
         NSettings::instance()->setValue("DisplayTagEditorConfirmDialog", !checkBox->isChecked());
     }
 
+    if (!m_files.isEmpty()) {
+        writeMultiTrackTags();
+        readMultiTrackTags();
+        return;
+    }
+
     if (writeTags()) {
+        if (!m_savedFiles.contains(m_file)) {
+            m_savedFiles << m_file;
+        }
         readTags();
     }
 }
