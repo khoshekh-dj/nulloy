@@ -1226,7 +1226,7 @@ padding: 5px;</string>
        <item>
         <widget class="QCheckBox" name="bpmDetectionCheckBox">
          <property name="text">
-          <string>Detect BPM for tracks without a BPM tag (tracks under 15 minutes)</string>
+          <string>Detect BPM for tracks without a BPM tag (tracks under 15 minutes; shown with a *)</string>
          </property>
         </widget>
        </item>

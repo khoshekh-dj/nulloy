@@ -1058,5 +1058,6 @@ void NPlayer::handleBpmDetected(const QString &file, qreal bpm)
     NPlaylistWidgetItem *playing = m_playlistWidget->playingItem();
     if (playing && playing->data(N::PathRole).toString() == file) {
         m_trackInfoWidget->updateFileLabels(file);
+        emit trackInfoChanged();
     }
 }

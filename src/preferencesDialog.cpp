@@ -421,7 +421,7 @@ void NPreferencesDialog::on_titleFormatHelpButton_clicked()
             "<li><b>%B</b> - " + tr("Bitrate in Kbps") + "</li>" +
             "<li><b>%s</b> - " + tr("Sample rate in kHz") + "</li>" +
             "<li><b>%H</b> - " + tr("Number of channels") + "</li>" +
-            "<li><b>%M</b> - " + tr("BPM (beats per minute)") + "</li>" +
+            "<li><b>%M</b> - " + tr("BPM (beats per minute); a * means TrackDeck detected it") + "</li>" +
             "<li><b>%k</b> - " + tr("Musical key") + "</li>" +
             "<li><b>%l</b> - " + tr("Record label") + "</li>" +
             "<li><b>%f</b> - " + tr("File name without extension") + "</li>" +
