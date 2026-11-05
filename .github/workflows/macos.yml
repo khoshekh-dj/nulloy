@@ -16,8 +16,19 @@ concurrency:
 
 jobs:
   build:
-    name: Build TrackDeck.dmg (Apple Silicon)
-    runs-on: macos-14
+    name: Build TrackDeck.dmg (${{ matrix.title }})
+    strategy:
+      fail-fast: false # one chip's failure shouldn't cancel the other's build
+      matrix:
+        include:
+          - runner: macos-14
+            title: Apple Silicon
+            label: AppleSilicon
+          # Intel build; the .dmg needs at least the runner's macOS (15)
+          - runner: macos-15-intel
+            title: Intel
+            label: Intel
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write # only used on tag pushes, to attach the .dmg to the release
     env:
@@ -75,7 +86,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: format-test-logs-macos
+          name: format-test-logs-macos-${{ matrix.label }}
           path: ${{ runner.temp }}/formats/logs
           if-no-files-found: ignore
 
@@ -87,7 +98,7 @@ jobs:
           else
             label="$(git rev-parse --short HEAD)"
           fi
-          file="TrackDeck-${label}-macOS-AppleSilicon.dmg"
+          file="TrackDeck-${label}-macOS-${{ matrix.label }}.dmg"
           mv dist/TrackDeck.dmg "dist/$file"
           shasum -a 256 "dist/$file" | tee "dist/$file.sha256"
           echo "file=$file" >> "$GITHUB_OUTPUT"
@@ -109,7 +120,7 @@ jobs:
           # attach to an existing release for this tag, or create a draft one
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release create "$GITHUB_REF_NAME" --draft --title "TrackDeck ${GITHUB_REF_NAME#trackdeck-v}" \
-              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`. Apple Silicon only." \
+              --notes "Built by GitHub Actions from \`$GITHUB_REF_NAME\`." \
               || gh release view "$GITHUB_REF_NAME" >/dev/null  # created meanwhile by the other workflow
           fi
           gh release upload "$GITHUB_REF_NAME" "dist/${{ steps.name.outputs.file }}" \

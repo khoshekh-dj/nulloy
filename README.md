@@ -4,7 +4,7 @@
 
 **TrackDeck** is a music player for DJs. It has an RGB waveform, a live spectrum visualiser, automatic BPM detection, tag-based playlist columns and a modern dark skin. It's based on [Nulloy](https://github.com/nulloy/nulloy) by Sergey Vlasov and is released under the same [GPL-3.0](LICENSE.GPL3) licence.
 
-**Download:** builds for **macOS (Apple Silicon)** and **Windows 10/11 (x64)** are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases).
+**Download:** builds for **macOS (Apple Silicon, macOS 14+)**, **macOS (Intel, macOS 15+)** and **Windows 10/11 (x64)** are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases). On an older Mac, see [Older Macs](#older-macs) below.
 - macOS: open the `.dmg` and drag TrackDeck to Applications. The app isn't notarized, so the first time, right-click it and choose **Open**.
 - Windows: a portable `.zip`. Unzip it anywhere and run `TrackDeck\TrackDeck.exe`. If SmartScreen warns about it, choose **More info → Run anyway**.
 
@@ -179,6 +179,17 @@ The script:
 - ad-hoc signs the app
 
 The result is not notarized, so on first launch right-click the app and choose **Open**. It runs on the same CPU architecture as the Homebrew it was built from.
+
+### Older Macs
+
+The release builds need macOS 14 (Apple Silicon) or 15 (Intel), because Homebrew's libraries only support recent macOS. To build for an older Mac, such as macOS 12 Monterey, use MacPorts, which compiles everything for the Mac it runs on:
+
+```sh
+xcode-select --install          # Xcode Command Line Tools
+# install MacPorts for your macOS version from https://www.macports.org/install.php
+scripts/build-mac-macports.sh   # first run compiles Qt and GStreamer: a few hours
+# -> dist/TrackDeck-<version>-macOS<N>-<chip>.dmg, runs on that macOS and newer
+```
 
 ### Xcode
 
