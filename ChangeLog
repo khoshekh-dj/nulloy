@@ -1,3 +1,9 @@
+* 1.2.1, Thu Nov 5 2026
+- New: Intel Mac download (macOS 15 Sequoia or newer)
+- Fix: the Khoshekh skin now follows the accent colour and the album-art background
+- Build: scripts/build-mac-macports.sh builds TrackDeck on older Macs (e.g. macOS 12 Monterey) with MacPorts
+- Website and README list the Intel download
+
 * 1.2.0, Thu Nov 5 2026
 - Fix: the app froze (beach ball) while tracks in iCloud Drive or other cloud folders downloaded; they're now fetched in the background
 - Fix: a click with a slight mouse movement started a drag, which could hang with tracks on a disconnected drive and remove tracks from the playlist

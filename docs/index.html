@@ -160,7 +160,7 @@
         <a class="btn" id="btn-win" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Download for Windows</span><span>.zip &darr;</span></a>
         <a class="btn ghost" href="https://github.com/khoshekh-dj/trackdeck"><span>Source code on GitHub</span><span>&rarr;</span></a>
       </div>
-      <div class="facts mono soft"><span id="version">Latest release</span><span>Free</span><span>Open source</span><span>No account</span></div>
+      <div class="facts mono soft"><a href="#download">Intel Mac?</a><span id="version">Latest release</span><span>Free</span><span>Open source</span><span>No account</span></div>
     </div>
   </section>
 
@@ -252,8 +252,9 @@
     <tbody>
       <tr>
         <td class="platform">macOS</td>
-        <td class="mono">Apple Silicon (M1+)<br>macOS 14 Sonoma or newer</td>
-        <td><a class="btn" id="dl-mac" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>.dmg</span><span>&darr;</span></a></td>
+        <td class="mono">Apple Silicon (M1+): macOS 14 Sonoma or newer<br>Intel: macOS 15 Sequoia or newer</td>
+        <td><a class="btn" id="dl-mac" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Apple Silicon</span><span>&darr;</span></a>
+          <a class="btn ghost" id="dl-mac-intel" href="https://github.com/khoshekh-dj/trackdeck/releases/latest" style="margin-top: 8px"><span>Intel</span><span>&darr;</span></a></td>
         <td><ol>
           <li>Open the <code>.dmg</code> and drag TrackDeck to Applications.</li>
           <li>It isn't notarized yet, so the first time, right-click it and choose <b>Open</b>, or run:
@@ -290,7 +291,7 @@
   <div class="cols">
     <dl>
       <dt>Format</dt><dd>Desktop app, C++ / Qt</dd>
-      <dt>Platforms</dt><dd>macOS 14+ (arm64), Windows 10/11 (x64)</dd>
+      <dt>Platforms</dt><dd>macOS 14+ (Apple Silicon), macOS 15+ (Intel), Windows 10/11 (x64)</dd>
       <dt>Audio</dt><dd>GStreamer, FFmpeg decoders</dd>
       <dt>Tags</dt><dd>TagLib</dd>
       <dt>Tempo</dt><dd>aubio</dd>
@@ -339,9 +340,12 @@
         }
         (rel.assets || []).forEach(function (a) {
           var url = a.browser_download_url;
-          if (/\.dmg$/i.test(a.name)) {
+          if (/AppleSilicon\.dmg$/i.test(a.name)) {
             document.getElementById("btn-mac").href = url;
             document.getElementById("dl-mac").href = url;
+          }
+          if (/Intel\.dmg$/i.test(a.name)) {
+            document.getElementById("dl-mac-intel").href = url;
           }
           if (/Windows.*\.zip$/i.test(a.name)) {
             document.getElementById("btn-win").href = url;
