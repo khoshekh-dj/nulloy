@@ -6,7 +6,7 @@
 
 **Download:** builds for **macOS (Apple Silicon, macOS 14+)**, **macOS (Intel, macOS 15+)** and **Windows 10/11 (x64)** are in the [releases](https://github.com/khoshekh-dj/trackdeck/releases). On an older Mac, see [Older Macs](#older-macs) below.
 - macOS: open the `.dmg` and drag TrackDeck to Applications. The app isn't notarized, so the first time, right-click it and choose **Open**.
-- Windows: a portable `.zip`. Unzip it anywhere and run `TrackDeck\TrackDeck.exe`. If SmartScreen warns about it, choose **More info → Run anyway**.
+- Windows: an installer (`…-Setup.exe`) or a portable `.zip`. The installer installs just for you, with no admin password, and adds TrackDeck to the Start menu; settings go in `%AppData%\TrackDeck`. The `.zip` runs from anywhere, e.g. a USB stick: unzip it and run `TrackDeck\TrackDeck.exe`; it keeps its settings in the same folder. If SmartScreen warns about either, choose **More info → Run anyway**.
 
 ## Features
 
@@ -101,6 +101,15 @@ scripts/package-windows.sh "$PWD/dist/TrackDeck-windows"
 ```
 
 The script copies Qt, an audio-only set of GStreamer plugins and every DLL they need, and collects their licences.
+
+To build the installer from that folder, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run, from a Windows command prompt:
+
+```bat
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.2.1 scripts\windows-installer.iss
+:: -> dist\TrackDeck-1.2.1-Windows-x64-Setup.exe
+```
+
+Release builds make both on GitHub Actions; see `.github/workflows/windows.yml`.
 </details>
 
 <details>
