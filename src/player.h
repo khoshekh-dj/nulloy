@@ -131,6 +131,9 @@ public slots:
 
 signals:
     void ambientImageChanged(const QString &path);
+    // the playing track's details changed without a track change (e.g. its
+    // BPM was just detected); skins refresh their track labels
+    void trackInfoChanged();
 
 private:
     NTrackInfoReader *m_skinTrackInfoReader;

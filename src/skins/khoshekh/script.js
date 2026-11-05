@@ -17,6 +17,7 @@ function Main()
 
         PlaybackEngine["stateChanged(N::PlaybackState)"].connect(this, "on_stateChanged");
         PlaybackEngine["mediaChanged(const QString &, int)"].connect(this, "on_mediaChanged");
+        Player["trackInfoChanged()"].connect(this, "updateTrackLabels"); // e.g. BPM detected
 
         Ui.mainWindow["newTitle(const QString &)"].connect(this, "setTitle");
         Ui.mainWindow["fullScreenEnabled(bool)"].connect(this, "on_fullScreenEnabled");

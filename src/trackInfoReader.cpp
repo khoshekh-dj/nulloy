@@ -120,7 +120,7 @@ QString NTrackInfoReader::getInfo(QChar ch) const
         }
         case 'v':
             return QCoreApplication::applicationVersion();
-        case 'M': { // BPM: the tag, or the detected tempo for untagged tracks
+        case 'M': { // BPM: the tag, or the detected tempo (marked "*") for untagged tracks
             if (!m_fileInfo.filePath().isEmpty()) {
                 m_reader->setSource(m_fileInfo.filePath());
             }
@@ -129,8 +129,8 @@ QString NTrackInfoReader::getInfo(QChar ch) const
                 return tag;
             }
             double bpm = 0;
-            if (NBpmCache::instance()->lookup(m_fileInfo.absoluteFilePath(), &bpm)) {
-                return NBpmCache::format(bpm);
+            if (NBpmCache::instance()->lookup(m_fileInfo.absoluteFilePath(), &bpm) && bpm > 0) {
+                return NBpmCache::format(bpm) + "*"; // detected by TrackDeck, not from the tag
             }
             return "";
         }
