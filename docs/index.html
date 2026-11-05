@@ -96,6 +96,12 @@
   pre { margin: 8px 0 0; background: var(--paper-2); padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
   pre code { background: none; padding: 0; }
 
+  /* support */
+  .support { display: grid; grid-template-columns: 7fr 5fr; gap: 48px; padding: 28px 0 0; align-items: end; }
+  .support p { margin: 0; font-size: 19px; max-width: 32em; }
+  .support .buttons { gap: 8px; }
+  .support .handle { margin-top: 8px; }
+
   /* specs + credits */
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding: 28px 0 0; }
   dl { margin: 0; font-family: var(--mono); font-size: 14px; display: grid; grid-template-columns: 11em 1fr; }
@@ -113,7 +119,7 @@
     .page { padding: 0 20px; }
     .mast { grid-template-columns: 1fr auto; }
     .mast nav { display: none; }
-    .hero, .pair, .cols { grid-template-columns: 1fr; gap: 28px; }
+    .hero, .pair, .cols, .support { grid-template-columns: 1fr; gap: 28px; }
     .row { grid-template-columns: 40px 1fr; }
     .row .body { grid-column: 2; }
     .styles { grid-template-columns: 1fr; }
@@ -138,6 +144,7 @@
     <nav class="mono">
       <a href="#side-a">Features</a>
       <a href="#download">Download</a>
+      <a href="#support">Support</a>
       <a href="#notes">Credits</a>
       <a href="https://github.com/khoshekh-dj/trackdeck">Source</a>
     </nav>
@@ -266,6 +273,18 @@
   </table>
   <p class="mono soft">Each file has a SHA-256 checksum &middot; <a href="https://github.com/khoshekh-dj/trackdeck/releases">All releases and notes</a></p>
 
+  <!-- SUPPORT -->
+  <div class="side-head" id="support"><h2>Support</h2><span class="mono soft">Optional</span></div>
+  <div class="support">
+    <p>TrackDeck is free, with no ads and no account. If it saves you time getting a set ready, you can buy me a coffee. It helps keep TrackDeck going.</p>
+    <div>
+      <div class="buttons">
+        <a class="btn" href="https://ko-fi.com/dj_khoshekh" rel="noopener"><span>Buy me a coffee on Ko-fi</span><span>&rarr;</span></a>
+      </div>
+      <div class="handle mono soft">ko-fi.com/dj_khoshekh</div>
+    </div>
+  </div>
+
   <!-- SPECS + NOTES -->
   <div class="side-head" id="notes"><h2>Liner notes</h2><span class="mono soft">Specs &amp; credits</span></div>
   <div class="cols">
@@ -284,12 +303,13 @@
       <p><span class="mono">Tempo detection</span><a href="https://aubio.org">aubio</a>.</p>
       <p><span class="mono">Screenshots</span>A demo playlist with fictional artists, titles and labels. Cover art generated in the Khoshekh style.</p>
       <p><span class="mono">Get involved</span><a href="https://github.com/khoshekh-dj/trackdeck/issues/new">Report a bug or suggest a feature</a>, or <a href="https://github.com/khoshekh-dj/trackdeck#build-instructions">build it from source</a>.</p>
+      <p><span class="mono">Support</span><a href="https://ko-fi.com/dj_khoshekh" rel="noopener">Buy me a coffee on Ko-fi</a>.</p>
     </div>
   </div>
 
   <footer class="mono">
     <span>&copy; 2026 Khoshekh &middot; GPL-3.0</span>
-    <span><a href="https://github.com/khoshekh-dj/trackdeck">Source</a> &nbsp;&middot;&nbsp; <a href="https://github.com/khoshekh-dj/trackdeck/releases">Releases</a> &nbsp;&middot;&nbsp; <a href="https://github.com/khoshekh-dj/trackdeck/issues">Issues</a></span>
+    <span><a href="https://github.com/khoshekh-dj/trackdeck">Source</a> &nbsp;&middot;&nbsp; <a href="https://github.com/khoshekh-dj/trackdeck/releases">Releases</a> &nbsp;&middot;&nbsp; <a href="https://github.com/khoshekh-dj/trackdeck/issues">Issues</a> &nbsp;&middot;&nbsp; <a href="https://ko-fi.com/dj_khoshekh" rel="noopener">Ko-fi</a></span>
   </footer>
 
 </div>
