@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrackDeck: a free music player for DJ prep</title>
+<meta name="description" content="TrackDeck is a free, open-source music player for DJs on macOS and Windows, with an RGB waveform, a live spectrum visualiser, BPM detection and playlists you can sort by key.">
+<meta property="og:title" content="TrackDeck: a free music player for DJ prep">
+<meta property="og:description" content="RGB waveform, live visualiser, BPM detection and Camelot-sorted playlists, for macOS and Windows.">
+<meta property="og:image" content="https://khoshekh-dj.github.io/trackdeck/assets/hero.jpg">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --line: #232937;
+    --text: #e8ebf1;
+    --muted: #9aa3b5;
+    --accent: #3d8bff;
+    --accent-2: #ff3d9a;
+    --radius: 14px;
+    --max: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  img { max-width: 100%; height: auto; display: block; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; background: rgba(11, 13, 18, 0.82);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; font-size: 18px; }
+  .brand img { width: 28px; height: 28px; }
+  .brand:hover { text-decoration: none; }
+  nav .links { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  nav .links a { color: var(--muted); font-size: 15px; }
+  nav .links a:hover { color: var(--text); text-decoration: none; }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px;
+         font-weight: 600; font-size: 16px; border: 1px solid var(--line); color: var(--text); background: var(--panel-2); }
+  .btn:hover { text-decoration: none; border-color: #3a4357; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 8px 30px rgba(61, 139, 255, 0.35); }
+  .btn.primary:hover { background: #5b9dff; }
+  .btn.small { padding: 8px 16px; font-size: 14px; }
+  .btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* hero */
+  header.hero { position: relative; padding: 72px 0 40px; text-align: center; overflow: hidden; }
+  header.hero::before { content: ""; position: absolute; inset: -200px -10% auto; height: 620px; z-index: -1;
+    background: radial-gradient(ellipse at 30% 40%, rgba(61, 139, 255, 0.22), transparent 60%),
+                radial-gradient(ellipse at 70% 30%, rgba(255, 61, 154, 0.16), transparent 60%); }
+  .hero .icon { width: 96px; height: 96px; margin: 0 auto 22px; filter: drop-shadow(0 12px 30px rgba(0,0,0,.5)); }
+  .badge { display: inline-block; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+           border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; margin-bottom: 20px; }
+  h1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -0.02em; }
+  h1 .grad { background: linear-gradient(90deg, #ff4d5e, #ffb03d, #1ed760, #22c3c3, #3d8bff);
+             -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); max-width: 720px; margin: 0 auto 30px; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .version { margin-top: 14px; color: var(--muted); font-size: 14px; }
+  .tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+  .tags span { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--line);
+               border-radius: 999px; padding: 4px 12px; }
+  .shot { margin: 48px auto 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
+          box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.02); }
+
+  /* sections */
+  section { padding: 80px 0; }
+  .eyebrow { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 10px; }
+  h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); max-width: 680px; margin: 0 0 40px; font-size: 18px; }
+  .center { text-align: center; }
+  .center .sub { margin-left: auto; margin-right: auto; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card .ico { font-size: 22px; margin-bottom: 12px; display: block; }
+  .new { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #fff;
+         background: var(--accent-2); border-radius: 6px; padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
+
+  /* visualiser gallery */
+  .styles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 18px; }
+  .styles figure, .gallery figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  figcaption { padding: 14px 18px; color: var(--muted); font-size: 15px; }
+  figcaption b { color: var(--text); }
+
+  /* split feature rows */
+  .split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 48px; align-items: center; }
+  .split.reverse { grid-template-columns: 1.25fr 1fr; }
+  .split.reverse .text { order: 2; }
+  .split img { border-radius: var(--radius); border: 1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .split ul { color: var(--muted); padding-left: 20px; margin: 0; }
+  .split li { margin: 6px 0; }
+  .split li b { color: var(--text); }
+
+  /* download */
+  .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; text-align: left; }
+  .dl { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .dl.detected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .dl h3 { margin: 0 0 4px; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+  .dl h3 svg { width: 22px; height: 22px; fill: currentColor; }
+  .dl .req { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+  .dl ol { color: var(--muted); font-size: 15px; padding-left: 20px; margin: 18px 0 0; }
+  .dl li { margin: 6px 0; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px;
+         background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--text); }
+  pre code { display: block; padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
+  pre { margin: 8px 0 0; }
+
+  footer { border-top: 1px solid var(--line); padding: 40px 0 60px; color: var(--muted); font-size: 14px; }
+  footer .cols { display: flex; gap: 40px; flex-wrap: wrap; justify-content: space-between; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+  footer .links a { display: block; margin: 4px 0; }
+
+  @media (max-width: 860px) {
+    .split, .split.reverse { grid-template-columns: 1fr; gap: 24px; }
+    .split.reverse .text { order: 0; }
+    .styles { grid-template-columns: 1fr; }
+    nav .links a.hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/icon.svg" alt=""> TrackDeck</a>
+    <div class="links">
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#visualiser">Visualiser</a>
+      <a class="hide-sm" href="https://github.com/khoshekh-dj/trackdeck">GitHub</a>
+      <a class="btn small primary" href="#download">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="icon" src="assets/icon.svg" alt="TrackDeck icon">
+    <div class="badge">Free &amp; open source · macOS &amp; Windows</div>
+    <h1>The music player<br>built for <span class="grad">DJ prep</span></h1>
+    <p class="lede">See every track's energy at a glance, hear it through a live visualiser, and line up your set by BPM and key. A fast native app that reads the tags you already have.</p>
+    <div class="cta">
+      <a class="btn primary" id="hero-download" href="#download">Download TrackDeck</a>
+      <a class="btn" href="https://github.com/khoshekh-dj/trackdeck">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Source code
+      </a>
+    </div>
+    <div class="version" id="version">&nbsp;</div>
+    <div class="tags"><span>No account</span><span>No subscription</span><span>Works with your existing tags</span><span>GPL-3.0</span></div>
+    <img class="shot" src="assets/hero.jpg" width="1600" height="733" alt="TrackDeck playing a track: cover art, a live spectrum visualiser, a colour waveform and a playlist with BPM, key and label columns">
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <p class="eyebrow">What it does</p>
+    <h2>Everything you check before a set, in one window</h2>
+    <p class="sub">TrackDeck is a player, not a library manager. Drop in a folder, and the information you care about is right there.</p>
+    <div class="grid">
+      <div class="card"><span class="ico">🌈</span><h3>RGB waveform</h3><p>The waveform is coloured by frequency: bass red, mids green, highs blue. Breakdowns, drops and vocals stand out before you press play.</p></div>
+      <div class="card"><span class="ico">📊</span><h3>Live visualiser<span class="new">New</span></h3><p>A real-time spectrum next to the track info, timed to what you hear. Bars, LED segments, mirrored or a smooth curve.</p></div>
+      <div class="card"><span class="ico">🥁</span><h3>BPM detection<span class="new">New</span></h3><p>No BPM tag? TrackDeck measures the tempo the first time you play a track and remembers it. Long DJ mixes are skipped.</p></div>
+      <div class="card"><span class="ico">🎹</span><h3>Sort by key<span class="new">New</span></h3><p>Click a column to sort. Keys follow the Camelot wheel, so 8A sits next to 9A, and Camelot, Open Key and "Am" all work.</p></div>
+      <div class="card"><span class="ico">🏷️</span><h3>Columns from your tags</h3><p>Artist, Title, Album, Genre, Key, Label, BPM, Year, Bitrate and Duration. Pick the columns you want and drag them into order.</p></div>
+      <div class="card"><span class="ico">🎨</span><h3>Make it yours</h3><p>A dark Modern skin and a teal Khoshekh skin, an accent colour, waveform colour schemes, and your album art as the window background.</p></div>
+      <div class="card"><span class="ico">🎧</span><h3>Plays everything</h3><p>MP3, AAC, Apple Lossless, FLAC, WAV, AIFF, Ogg, Opus, WMA and more, with gapless playback. Media keys and Now Playing on Mac.</p></div>
+      <div class="card"><span class="ico">⚡</span><h3>Native and light</h3><p>A small C++ app, not a web page in a box. The visualiser uses about 7% of one CPU core on an Apple Silicon Mac.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="visualiser" style="background: linear-gradient(180deg, transparent, rgba(61,139,255,0.05) 30%, transparent)">
+  <div class="wrap">
+    <p class="eyebrow">Visualiser</p>
+    <h2>Four styles, your colours</h2>
+    <p class="sub">Choose the style, bar density, sensitivity, treble boost, fall speed and frame rate in Preferences. Colours follow the waveform, your accent colour, or a gradient you pick.</p>
+    <div class="styles">
+      <figure><img src="assets/vis-bars.jpg" width="1000" height="136" alt="Visualiser: bars with peak caps" loading="lazy"><figcaption><b>Bars</b> with falling peak caps</figcaption></figure>
+      <figure><img src="assets/vis-segments.jpg" width="1000" height="136" alt="Visualiser: LED segments" loading="lazy"><figcaption><b>LED segments</b>, like a hardware meter</figcaption></figure>
+      <figure><img src="assets/vis-mirrored.jpg" width="1000" height="136" alt="Visualiser: mirrored bars" loading="lazy"><figcaption><b>Mirrored</b>, growing from the centre</figcaption></figure>
+      <figure><img src="assets/vis-curve.jpg" width="1000" height="136" alt="Visualiser: smooth curve with a pink to blue gradient" loading="lazy"><figcaption><b>Smooth curve</b> with a custom gradient</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div class="text">
+        <p class="eyebrow">Plan your set</p>
+        <h2>Sort by key, BPM or anything else</h2>
+        <ul>
+          <li><b>Click a header</b> to sort, click again to reverse, and a third time to put your order back.</li>
+          <li><b>Keys sort on the Camelot wheel</b>, so harmonically compatible tracks end up together.</li>
+          <li><b>BPM, Year and Bitrate</b> sort as numbers and <b>Duration</b> as time. Empty cells go last.</li>
+          <li><b>Playback follows the order you see</b>, and it's saved with your playlist.</li>
+        </ul>
+      </div>
+      <img src="assets/keysort.jpg" width="1600" height="733" alt="Playlist sorted by key: 2A, 4A, 5A, 7A, 8A, 9A, 11A, 12A" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0">
+  <div class="wrap">
+    <div class="split reverse">
+      <div class="text">
+        <p class="eyebrow">Skins</p>
+        <h2>Modern, or Khoshekh</h2>
+        <ul>
+          <li><b>Modern</b>: dark, clean and the default, in your choice of accent colour.</li>
+          <li><b>Khoshekh</b>: the same layout in deep teal and cream.</li>
+          <li><b>Album art background</b>: the current cover, blurred, fills the window.</li>
+          <li><b>Classic skins</b> from Nulloy (Metro, Silver, Slim) are still there too.</li>
+        </ul>
+      </div>
+      <img src="assets/khoshekh.jpg" width="1600" height="733" alt="TrackDeck in the teal Khoshekh skin with the mirrored visualiser" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="download" class="center" style="background: linear-gradient(180deg, transparent, rgba(255,61,154,0.05) 40%, transparent)">
+  <div class="wrap">
+    <p class="eyebrow">Download</p>
+    <h2>Free for macOS and Windows</h2>
+    <p class="sub">No installer wizard and no account. Your settings and playlist carry over between versions.</p>
+    <div class="downloads">
+      <div class="dl" id="dl-mac">
+        <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.37 1.43c0 1.14-.42 2.2-1.13 2.99-.76.86-2 1.52-3.03 1.44-.13-1.1.42-2.25 1.12-3 .78-.84 2.11-1.47 3.04-1.43zM20.5 17.2c-.56 1.29-.83 1.87-1.55 3.01-1 1.6-2.42 3.59-4.17 3.6-1.56.02-1.96-1.01-4.07-1-2.11.01-2.56 1.02-4.12 1.01-1.75-.02-3.09-1.81-4.09-3.41C-.3 16.04-.6 10.79 1.26 7.97c1.31-2 3.39-3.17 5.34-3.17 1.98 0 3.23 1.09 4.87 1.09 1.6 0 2.57-1.09 4.86-1.09 1.73 0 3.57.94 4.88 2.57-4.29 2.35-3.59 8.48.29 9.83z"/></svg> macOS</h3>
+        <p class="req">Apple Silicon (M1 and later) · macOS 14 Sonoma or newer</p>
+        <a class="btn primary" id="mac-link" href="https://github.com/khoshekh-dj/trackdeck/releases/latest">Download .dmg</a>
+        <ol>
+          <li>Open the <code>.dmg</code> and drag <b>TrackDeck</b> to <b>Applications</b>.</li>
+          <li>The app isn't notarized yet, so the first time, <b>right-click it and choose Open</b>. Or run:
+            <pre><code>xattr -dr com.apple.quarantine /Applications/TrackDeck.app</code></pre></li>
+        </ol>
+      </div>
+      <div class="dl" id="dl-win">
+        <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M0 3.45 9.75 2.1v9.45H0V3.45zm10.95-1.5L24 0v11.4H10.95V1.95zM0 12.6h9.75v9.45L0 20.7v-8.1zm10.95 0H24V24l-13.05-1.8V12.6z"/></svg> Windows</h3>
+        <p class="req">Windows 10 or 11 · x64 · portable, no installer</p>
+        <a class="btn primary" id="win-link" href="https://github.com/khoshekh-dj/trackdeck/releases/latest">Download .zip</a>
+        <ol>
+          <li>Unzip anywhere and run <code>TrackDeck\TrackDeck.exe</code>.</li>
+          <li>If SmartScreen warns about an unrecognised app, choose <b>More info → Run anyway</b>.</li>
+        </ol>
+      </div>
+    </div>
+    <p class="version" style="margin-top: 22px">Every release has SHA-256 checksums · <a href="https://github.com/khoshekh-dj/trackdeck/releases">All releases and release notes</a></p>
+  </div>
+</section>
+
+<section class="center" style="padding-top: 20px">
+  <div class="wrap">
+    <p class="eyebrow">Open source</p>
+    <h2>Made by a DJ, for DJs</h2>
+    <p class="sub">TrackDeck is free software under the GPL-3.0. Found a bug, or want something it doesn't do yet? Open an issue, or send a pull request.</p>
+    <div class="grid" style="text-align: left">
+      <div class="card"><h3>Report a bug</h3><p>Tell us what happened and which track or format it was. <a href="https://github.com/khoshekh-dj/trackdeck/issues/new">Open an issue →</a></p></div>
+      <div class="card"><h3>Suggest a feature</h3><p>Musical key detection, cue points, more skins? Ideas are welcome. <a href="https://github.com/khoshekh-dj/trackdeck/issues/new">Suggest one →</a></p></div>
+      <div class="card"><h3>Contribute code</h3><p>C++ and Qt, with build steps for macOS, Windows and Linux in the README. <a href="https://github.com/khoshekh-dj/trackdeck#build-instructions">Build it →</a></p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <a class="brand" href="#"><img src="assets/icon.svg" alt=""> TrackDeck</a>
+      <p style="max-width: 420px">A fork of <a href="https://github.com/nulloy/nulloy">Nulloy</a> by Sergey Vlasov, not affiliated with or endorsed by the Nulloy project. BPM detection uses <a href="https://aubio.org">aubio</a>. Skins are CC-BY-SA 3.0. © 2026 Khoshekh.</p>
+      <p>Screenshots use made-up artists and tracks.</p>
+    </div>
+    <div class="links">
+      <a href="#download">Download</a>
+      <a href="https://github.com/khoshekh-dj/trackdeck/releases">Release notes</a>
+      <a href="https://github.com/khoshekh-dj/trackdeck">Source code</a>
+      <a href="https://github.com/khoshekh-dj/trackdeck/issues">Issues</a>
+      <a href="https://github.com/khoshekh-dj/trackdeck/blob/main/LICENSE.GPL3">Licence (GPL-3.0)</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Point the download buttons straight at the latest release's files, and
+  // highlight the visitor's platform. Falls back to the releases page.
+  (function () {
+    var ua = navigator.userAgent || "";
+    var platform = /Windows/i.test(ua) ? "win" : (/Mac/i.test(ua) ? "mac" : null);
+    if (platform) {
+      document.getElementById("dl-" + platform).classList.add("detected");
+      document.getElementById("hero-download").textContent =
+        platform === "mac" ? "Download for macOS" : "Download for Windows";
+    }
+    fetch("https://api.github.com/repos/khoshekh-dj/trackdeck/releases/latest")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rel) {
+        if (!rel) return;
+        var version = (rel.tag_name || "").replace(/^trackdeck-v/, "");
+        if (version) {
+          document.getElementById("version").textContent = "Version " + version;
+        }
+        (rel.assets || []).forEach(function (a) {
+          if (/\.dmg$/i.test(a.name)) document.getElementById("mac-link").href = a.browser_download_url;
+          if (/Windows.*\.zip$/i.test(a.name)) document.getElementById("win-link").href = a.browser_download_url;
+        });
+        if (platform) {
+          document.getElementById("hero-download").href =
+            document.getElementById(platform + "-link").href;
+        }
+      })
+      .catch(function () {});
+  })();
+</script>
+</body>
+</html>
