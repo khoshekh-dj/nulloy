@@ -15,6 +15,8 @@
 
 #include "actionManager.h"
 
+#include <QFileInfo>
+
 #include "action.h"
 #include "coverWidget.h"
 #include "mainWindow.h"
@@ -181,13 +183,52 @@ NActionManager::NActionManager(NPlayer *player) : QObject(player)
     }
 
     {
+        fileMenu->addSeparator();
+        m_contextMenu->addSeparator();
+
+        NAction *openPlaylistAction = new NAction(QIcon::fromTheme("document-open"),
+                                                  tr("Open Playlist..."), player);
+        openPlaylistAction->setShortcut(QKeySequence("Ctrl+L"));
+        openPlaylistAction->setStatusTip(tr("Open a saved playlist"));
+        connect(openPlaylistAction, &NAction::triggered, player, &NPlayer::showOpenPlaylistDialog);
+        m_contextMenu->addAction(openPlaylistAction);
+        fileMenu->addAction(openPlaylistAction);
+
+        // rebuilt each time it opens, so it follows the playlists you use
+        auto fillRecent = [player](QMenu *menu) {
+            menu->clear();
+            QStringList recent = player->recentPlaylists();
+            for (const QString &file : recent) {
+                QAction *action = menu->addAction(QFileInfo(file).completeBaseName());
+                action->setToolTip(file);
+                QObject::connect(action, &QAction::triggered,
+                                 [player, file]() { player->openPlaylist(file); });
+            }
+            if (recent.isEmpty()) {
+                menu->addAction(tr("No recent playlists"))->setEnabled(false);
+            }
+        };
+        for (QMenu *parent : {fileMenu, m_contextMenu}) {
+            QMenu *recentMenu = parent->addMenu(tr("Open Recent Playlist"));
+            recentMenu->addAction(tr("No recent playlists"))->setEnabled(false); // placeholder
+            connect(recentMenu, &QMenu::aboutToShow, [recentMenu, fillRecent]() { fillRecent(recentMenu); });
+        }
+
         NAction *savePlaylistAction = new NAction(QIcon::fromTheme("document-save",
                                                                    winIcons.value(175)),
-                                                  tr("Save Playlist..."), player);
+                                                  tr("Save Playlist"), player);
         savePlaylistAction->setShortcut(QKeySequence("Ctrl+S"));
-        connect(savePlaylistAction, &NAction::triggered, player, &NPlayer::showSavePlaylistDialog);
+        savePlaylistAction->setStatusTip(tr("Save the list to its playlist file"));
+        connect(savePlaylistAction, &NAction::triggered, player, &NPlayer::savePlaylist);
         m_contextMenu->addAction(savePlaylistAction);
         fileMenu->addAction(savePlaylistAction);
+
+        NAction *savePlaylistAsAction = new NAction(tr("Save Playlist As..."), player);
+        savePlaylistAsAction->setShortcut(QKeySequence("Ctrl+Shift+S"));
+        connect(savePlaylistAsAction, &NAction::triggered, player, &NPlayer::showSavePlaylistDialog);
+        m_contextMenu->addAction(savePlaylistAsAction);
+        fileMenu->addAction(savePlaylistAsAction);
+        m_contextMenu->addSeparator();
     }
 
     m_contextMenu->addMenu(windowSubMenu);
@@ -435,6 +476,29 @@ NActionManager::NActionManager(NPlayer *player) : QObject(player)
             }
         });
         m_playlistContextMenu->addAction(revealAction);
+    }
+
+    {
+        // "Add to Playlist" lists the saved playlists each time it opens
+        QMenu *addToMenu = m_playlistContextMenu->addMenu(tr("Add to Playlist"));
+        addToMenu->addAction(tr("New Playlist...")); // placeholder: an empty submenu may not open
+        connect(addToMenu, &QMenu::aboutToShow, [addToMenu, player]() {
+            addToMenu->clear();
+            bool haveSelection = !player->playlistWidget()->selectedFiles().isEmpty();
+            for (const QString &file : player->savedPlaylists()) {
+                QAction *action = addToMenu->addAction(QFileInfo(file).completeBaseName());
+                action->setEnabled(haveSelection);
+                QObject::connect(action, &QAction::triggered,
+                                 [player, file]() { player->addSelectionToPlaylist(file); });
+            }
+            if (!addToMenu->isEmpty()) {
+                addToMenu->addSeparator();
+            }
+            QAction *newAction = addToMenu->addAction(tr("New Playlist..."));
+            newAction->setEnabled(haveSelection);
+            QObject::connect(newAction, &QAction::triggered, player, &NPlayer::addSelectionToNewPlaylist);
+        });
+        m_playlistContextMenu->addSeparator();
     }
 
     {

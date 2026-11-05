@@ -1493,3 +1493,14 @@ void NPlaylistWidget::fileFetched(const QString &file)
     emit itemsChanged();
 }
 // << Background fetching of cloud files
+QList<NPlaylistDataItem> NPlaylistWidget::selectedDataItems() const
+{
+    QList<NPlaylistDataItem> items;
+    for (int i = 0; i < count(); ++i) {
+        NPlaylistWidgetItem *it = itemAtRow(i);
+        if (it->isSelected()) {
+            items << it->dataItem();
+        }
+    }
+    return items;
+}

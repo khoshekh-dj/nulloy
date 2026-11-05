@@ -144,6 +144,10 @@ NSettings::NSettings(QObject *parent)
     initValue("AccentColor", QString("#FF8A3D")); // orange
     initValue("AmbientBackground", true);
     initValue("BpmDetection", true);
+    initValue("PlaylistsFolder", QString("~/Music/TrackDeck Playlists"));
+    initValue("OpenPlaylistBehaviour", QString("ask")); // ask, replace, add
+    initValue("RecentPlaylists", QStringList());
+    initValue("CurrentPlaylistFile", QString());
     initValue("Visualiser", true);
     initValue("VisualiserStyle", "curve");
     initValue("VisualiserDensity", "normal");

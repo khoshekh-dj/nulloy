@@ -116,6 +116,7 @@ public:
     ~NPlaylistWidget();
 
     QStringList selectedFiles() const;
+    QList<NPlaylistDataItem> selectedDataItems() const; // in playlist order
     NPlaylistWidgetItem *itemAtRow(int row) const;
     void refreshItemsForFile(const QString &file);
     NPlaylistWidgetItem *playingItem() const;
