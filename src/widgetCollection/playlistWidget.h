@@ -18,6 +18,7 @@
 
 #include <QList>
 #include <QListWidget>
+#include <QSet>
 #include <QPointer>
 
 #include "global.h"
@@ -76,6 +77,8 @@ private:
     Qt::SortOrder m_sortOrder;
     QList<QListWidgetItem *> m_presortOrder;
     void sortByColumn(int column);
+    void sortRows(int column, Qt::SortOrder order);
+    bool m_sortWaitingForFetch; // a sort is waiting for cloud files to arrive
     void applyOrder(const QList<QListWidgetItem *> &order);
     void clearSortState();
     void updateSortIndicator();
@@ -95,6 +98,7 @@ private:
 
 protected:
     void wheelEvent(QWheelEvent *event);
+    void mousePressEvent(QMouseEvent *event);
 
 protected slots:
     void rowsInserted(const QModelIndex &parent, int start, int end);
@@ -178,6 +182,19 @@ private:
     DragStart m_dragStart;
     DropEnd m_dropEnd;
     QPointer<QDrag> m_itemDrag;
+    // Files that may have to be downloaded before they can be read (iCloud
+    // Drive, other cloud folders, files macOS has offloaded) are fetched on a
+    // background thread first, so reading their tags never blocks the UI.
+    QSet<QString> m_readyFiles;   // safe to read on the main thread
+    QSet<QString> m_fetchPending; // queued or being fetched
+    QStringList m_fetchQueue;
+    int m_fetchRunning;
+    bool needsFetch(const QString &file);
+    void startFetches();
+    void fileFetched(const QString &file);
+
+    QPoint m_pressPos;     // where the left button went down
+    bool m_pressOnItem;    // ...and whether that was on a track
     bool m_fileDrop;
     QList<QUrl> m_mimeDataUrls;
     QStringList mimeTypes() const;
