@@ -16,6 +16,7 @@
 #include "player.h"
 
 #include <QFile>
+#include <QTimer>
 
 #include <QDir>
 
@@ -474,6 +475,9 @@ void NPlayer::loadDefaultPlaylist()
             m_waveformSlider->setValue(pos);
             m_waveformSlider->setPausedState(true);
             m_trackInfoWidget->updateFileLabels(file);
+            // the engine doesn't report a media change until playback starts,
+            // so tell the skin to show this track's title, artist and details
+            QTimer::singleShot(0, this, [this]() { emit trackInfoChanged(); });
         }
     }
 }
