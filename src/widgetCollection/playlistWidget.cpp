@@ -20,6 +20,7 @@
 #include <QContextMenuEvent>
 #include <QDrag>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QMap>
 #include <QScrollBar>
@@ -69,6 +70,7 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     m_playingItem = NULL;
 
     m_itemDrag = NULL;
+    m_pressOnItem = false;
     m_fileDrop = false;
     m_dragStart = DragStartInside;
     m_dropEnd = DropEndInside;
@@ -935,6 +937,15 @@ QMimeData *NPlaylistWidget::mimeData(const QList<QListWidgetItem *> items) const
     return data;
 }
 
+void NPlaylistWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_pressPos = event->pos();
+        m_pressOnItem = itemAt(event->pos()) != NULL;
+    }
+    QListWidget::mousePressEvent(event);
+}
+
 void NPlaylistWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (!(event->buttons() & Qt::LeftButton)) {
@@ -946,13 +957,29 @@ void NPlaylistWidget::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
-    if (selectedItems().isEmpty()) {
+    // Start dragging only after a deliberate movement that began on a track.
+    // Without the threshold every click with the slightest wobble became a
+    // drag, which hands macOS a file URL per selected track; for tracks on a
+    // drive that's no longer connected that can stall with a beach ball.
+    if (!m_pressOnItem ||
+        (event->pos() - m_pressPos).manhattanLength() < QApplication::startDragDistance()) {
         return;
     }
 
+    if (selectedItems().isEmpty()) {
+        return;
+    }
+    m_pressOnItem = false; // one drag per press
+
+    // missing files (e.g. on an unplugged drive) aren't put on the drag;
+    // moving rows within the playlist doesn't need the URLs
     QList<QUrl> urls;
-    foreach (QListWidgetItem *item, selectedItems())
-        urls << QUrl::fromLocalFile(item->data(N::PathRole).toString());
+    foreach (QListWidgetItem *item, selectedItems()) {
+        QString path = item->data(N::PathRole).toString();
+        if (QFileInfo::exists(path)) {
+            urls << QUrl::fromLocalFile(path);
+        }
+    }
     QStringList files = selectedFiles();
 
     QMimeData *mimeData = new QMimeData;

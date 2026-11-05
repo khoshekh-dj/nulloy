@@ -95,6 +95,7 @@ private:
 
 protected:
     void wheelEvent(QWheelEvent *event);
+    void mousePressEvent(QMouseEvent *event);
 
 protected slots:
     void rowsInserted(const QModelIndex &parent, int start, int end);
@@ -178,6 +179,8 @@ private:
     DragStart m_dragStart;
     DropEnd m_dropEnd;
     QPointer<QDrag> m_itemDrag;
+    QPoint m_pressPos;     // where the left button went down
+    bool m_pressOnItem;    // ...and whether that was on a track
     bool m_fileDrop;
     QList<QUrl> m_mimeDataUrls;
     QStringList mimeTypes() const;
