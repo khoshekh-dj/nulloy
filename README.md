@@ -18,12 +18,14 @@ A dark design with large cover art, the title, artist and album, a BPM · kbps �
 
 To switch skins, use Preferences → General → Skin, then restart TrackDeck.
 
-![Modern skin](docs/screenshots/modern-skin.png)
+![TrackDeck in the Modern skin: cover art, the live spectrum visualiser, the RGB waveform and the playlist columns](docs/assets/hero.jpg)
+
+![TrackDeck in the teal Khoshekh skin with the mirrored visualiser](docs/assets/khoshekh.jpg)
 
 ### RGB waveform
 The waveform is coloured by frequency, with bass in red, mids in green and highs in blue. Choose RGB (balanced), Vivid RGB or your accent colour in Preferences → Track Information. You can also untick *Color waveform by frequency* to turn the colours off.
 
-![RGB waveform](docs/screenshots/rgb-waveform.png)
+![RGB waveform](docs/screenshots/rgb-waveform.jpg)
 
 ### Live spectrum visualiser
 A real-time frequency display, like a graphic EQ, to the right of the track info. The bars are timed to what you hear, not to what has just been decoded. Preferences → Visualiser lets you choose:
@@ -34,13 +36,18 @@ A real-time frequency display, like a graphic EQ, to the right of the track info
 
 It uses about 7% of one CPU core at 30 frames per second on an Apple Silicon Mac. To turn it off, untick *Show the live spectrum visualiser*.
 
+![Visualiser: bars with peak caps](docs/assets/vis-bars.jpg)
+![Visualiser: LED segments](docs/assets/vis-segments.jpg)
+![Visualiser: mirrored bars](docs/assets/vis-mirrored.jpg)
+![Visualiser: smooth curve](docs/assets/vis-curve.jpg)
+
 ### BPM detection
 For tracks without a BPM tag, TrackDeck works out the tempo the first time you play them, using [aubio](https://aubio.org). The result appears in the BPM column and on the track info line with a `*` (for example `126.1*`), so you can tell it from a BPM tag, and it's remembered, so each track is analysed only once. Tracks of 15 minutes or longer are skipped, because they're most likely DJ mixes. To turn it off, untick Preferences → Track Information → *Detect BPM for tracks without a BPM tag*.
 
 ### Playlist columns
 The playlist can show columns from your tags: Artist, Title, Album, Genre, Key, Label, BPM, Year, Track, Bitrate and Duration. In Preferences → Track Information, tick the columns you want and drag them into order. Columns are resizable. To turn them off, untick *Show playlist as columns*.
 
-![Playlist columns](docs/screenshots/playlist-columns.png)
+![Playlist columns with Genre, BPM, Key and Label, sorted by key](docs/assets/keysort.jpg)
 
 ### Playlists
 Save the current list as a playlist (**Save Playlist As…**, Shift+Cmd+S), open one (**Open Playlist…**, Cmd+L, or **Open Recent Playlist**), and right-click tracks to **Add to Playlist ▸** an existing playlist or a new one, without leaving the list you're on. Playlists are `.m3u8` files in `~/Music/TrackDeck Playlists` (configurable in Preferences → General), so rekordbox, Serato, Engine DJ and most players can import them. When opening a playlist, TrackDeck asks whether to replace the current list or add to it; Preferences sets a default. **Save Playlist** (Cmd+S) updates the playlist you opened.
