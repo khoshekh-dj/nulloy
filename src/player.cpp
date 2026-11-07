@@ -799,9 +799,29 @@ void NPlayer::on_playbackEngine_stateChanged(N::PlaybackState state)
 #endif
 }
 
-void NPlayer::showTagEditor(const QString &path)
+void NPlayer::showTagEditor(const QStringList &files)
 {
-    NTagEditorDialog(path, m_mainWindow);
+    QStringList saved;
+    {
+        NTagEditorDialog dialog(files, m_mainWindow);
+        if (!dialog.isValid()) {
+            return;
+        }
+        dialog.exec();
+        saved = dialog.savedFiles();
+    }
+    if (saved.isEmpty()) {
+        return;
+    }
+
+    // show the new tags in the playlist and, for the playing track, the track info
+    m_playlistWidget->refreshItemsForFiles(saved);
+    NPlaylistWidgetItem *playing = m_playlistWidget->playingItem();
+    if (playing && saved.contains(playing->data(N::PathRole).toString())) {
+        QString file = playing->data(N::PathRole).toString();
+        m_trackInfoWidget->updateFileLabels(file);
+        emit trackInfoChanged();
+    }
 }
 
 void NPlayer::on_playlist_addMoreRequested()

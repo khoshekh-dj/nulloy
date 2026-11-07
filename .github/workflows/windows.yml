@@ -19,7 +19,7 @@ jobs:
     name: Build TrackDeck (Windows x64, MSYS2 UCRT64)
     runs-on: windows-2022
     permissions:
-      contents: write # only used on tag pushes, to attach the zip to the release
+      contents: write # only used on tag pushes, to attach the zip and installer to the release
     defaults:
       run:
         shell: msys2 {0}
@@ -113,6 +113,45 @@ jobs:
           mv dist/TrackDeck-windows.zip "dist/$file"
           sha256sum "dist/$file" | tee "dist/$file.sha256"
           echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "setup=TrackDeck-${label}-Windows-x64-Setup" >> "$GITHUB_OUTPUT"
+          echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress | Out-Null
+          }
+          & $iscc /Qp "/DAppVersion=${{ steps.name.outputs.version }}" `
+            "/DSourceDir=$PWD\dist\TrackDeck-windows\TrackDeck" "/DIconDir=$PWD\tmp" `
+            "/DOutputDir=$PWD\dist" "/DOutputBase=${{ steps.name.outputs.setup }}" `
+            scripts\windows-installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Test installer (silent install, launch, uninstall)
+        shell: pwsh
+        run: |
+          $dir = "$env:RUNNER_TEMP\TrackDeck-install"
+          $setup = "dist\${{ steps.name.outputs.setup }}.exe"
+          $p = Start-Process $setup -Wait -PassThru -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/CURRENTUSER","/NORESTART","/TASKS=associate","/DIR=$dir","/LOG=$env:RUNNER_TEMP\install.log"
+          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\install.log"; throw "install exited $($p.ExitCode)" }
+          foreach ($f in "TrackDeck.exe","gst-plugin-scanner.exe","skins","plugins","gstreamer","unins000.exe") {
+            if (-not (Test-Path "$dir\$f")) { throw "missing after install: $f" }
+          }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\TrackDeck.lnk")) { throw "no Start menu shortcut" }
+          $v = Start-Process "$dir\TrackDeck.exe" -ArgumentList "--version" -Wait -PassThru
+          "TrackDeck.exe --version exited with $($v.ExitCode)"
+          $u = Start-Process "$dir\unins000.exe" -Wait -PassThru -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART"
+          Start-Sleep -Seconds 3   # the uninstaller finishes from a temp copy
+          if (Test-Path "$dir\TrackDeck.exe") { throw "TrackDeck.exe still there after uninstall" }
+          if (Test-Path "HKCU:\Software\Classes\TrackDeck.AudioFile") { throw "file association left behind" }
+          "install / launch / uninstall OK"
+
+      - name: Checksum installer
+        run: |
+          f="${{ steps.name.outputs.setup }}.exe"
+          sha256sum "dist/$f" | tee "dist/$f.sha256"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -121,6 +160,8 @@ jobs:
           path: |
             dist/${{ steps.name.outputs.file }}
             dist/${{ steps.name.outputs.file }}.sha256
+            dist/${{ steps.name.outputs.setup }}.exe
+            dist/${{ steps.name.outputs.setup }}.exe.sha256
           if-no-files-found: error
 
       - name: Attach to release (tags only)
@@ -135,4 +176,5 @@ jobs:
               || gh release view "$GITHUB_REF_NAME" >/dev/null  # created meanwhile by the other workflow
           fi
           gh release upload "$GITHUB_REF_NAME" "dist/${{ steps.name.outputs.file }}" \
-            "dist/${{ steps.name.outputs.file }}.sha256" --clobber
+            "dist/${{ steps.name.outputs.file }}.sha256" \
+            "dist/${{ steps.name.outputs.setup }}.exe" "dist/${{ steps.name.outputs.setup }}.exe.sha256" --clobber

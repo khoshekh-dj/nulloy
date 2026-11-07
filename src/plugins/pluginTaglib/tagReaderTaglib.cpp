@@ -15,13 +15,19 @@
 
 #include "tagReaderTaglib.h"
 
+#include <aifffile.h>
 #include <aiffproperties.h>
 #include <apeproperties.h>
 #include <flacproperties.h>
+#include <mp4file.h>
 #include <mp4properties.h>
+#include <mp4tag.h>
+#include <mpegfile.h>
+#include <taglib.h>
 #include <tpropertymap.h>
 #include <trueaudioproperties.h>
 #include <wavpackproperties.h>
+#include <wavfile.h>
 #include <wavproperties.h>
 
 #include <QFileInfo>
@@ -35,6 +41,7 @@ QString NTaglib::_filePath;
 NTagReaderTaglib::NTagReaderTaglib(QObject *parent) : NTagReaderInterface(parent)
 {
     m_isValid = false;
+    m_id3v2Version = 3;
     m_codec = nullptr;
     m_utf8Codec = QTextCodec::codecForName("UTF-8");
 }
@@ -246,8 +253,14 @@ N::Tag NTagReaderTaglib::tagFromKey(const QString &key) const
         return N::EncodedByTag;
     } else if (key == "GENRE") {
         return N::GenreTag;
-    } else if (key == "PUBLISHER") {
-        return N::PublisherTag;
+    } else if (key == "LABEL" || key == "PUBLISHER") {
+        return N::LabelTag;
+    } else if (key == "INITIALKEY") {
+        return N::KeyTag;
+    } else if (key == "ALBUMARTIST") {
+        return N::AlbumArtistTag;
+    } else if (key == "REMIXER") {
+        return N::RemixerTag;
     } else if (key == "TITLE") {
         return N::TitleTag;
     } else if (key == "TRACKNUMBER") {
@@ -280,8 +293,14 @@ QString NTagReaderTaglib::tagToKey(N::Tag tag) const
             return "ENCODEDBY";
         case N::GenreTag:
             return "GENRE";
-        case N::PublisherTag:
-            return "PUBLISHER";
+        case N::LabelTag:
+            return "LABEL"; // ID3v2 TPUB, the record label
+        case N::KeyTag:
+            return "INITIALKEY"; // ID3v2 TKEY
+        case N::AlbumArtistTag:
+            return "ALBUMARTIST"; // ID3v2 TPE2
+        case N::RemixerTag:
+            return "REMIXER"; // ID3v2 TPE4
         case N::TitleTag:
             return "TITLE";
         case N::TrackNumberTag:
@@ -335,13 +354,136 @@ QMap<QString, QStringList> NTagReaderTaglib::getTags() const
 
 QMap<QString, QStringList> NTagReaderTaglib::setTags(const QMap<QString, QStringList> &tags)
 {
+    TagLib::PropertyMap properties(QMapToTMap(tags));
     QMap<QString, QStringList> unsaved = TMapToQMap(
-        NTaglib::_tagRef->file()->setProperties(QMapToTMap(tags)));
+        NTaglib::_tagRef->file()->setProperties(properties));
+    fixMp4Key(properties);
     if (unsaved.isEmpty()) {
-        bool success = NTaglib::_tagRef->file()->save();
+        bool success = saveFile();
         if (!success) { // workaround to relay the error
             unsaved["Error"] = QStringList() << "Write";
         }
     }
     return unsaved;
+}
+
+QMap<QString, QStringList> NTagReaderTaglib::updateTags(const QMap<QString, QStringList> &changes)
+{
+    QMap<QString, QStringList> failed;
+    if (!m_isValid || !NTaglib::_tagRef || NTaglib::_tagRef->isNull()) {
+        failed["Error"] = QStringList() << "Write";
+        return failed;
+    }
+
+    // start from the file's own TagLib strings so untouched fields are
+    // written back exactly as they were, whatever the display encoding
+    TagLib::File *file = NTaglib::_tagRef->file();
+    TagLib::PropertyMap properties = file->properties();
+    for (auto it = changes.constBegin(); it != changes.constEnd(); ++it) {
+        TagLib::String key = QStringToTString(it.key());
+        if (it.value().isEmpty()) {
+            properties.erase(key);
+        } else {
+            TagLib::StringList values;
+            for (const QString &value : it.value()) {
+                values.append(QStringToTString(value));
+            }
+            properties.replace(key, values);
+        }
+    }
+
+    TagLib::PropertyMap unsupported = file->setProperties(properties);
+    fixMp4Key(properties);
+    for (auto it = changes.constBegin(); it != changes.constEnd(); ++it) {
+        if (unsupported.contains(QStringToTString(it.key()))) {
+            failed[it.key()] = it.value();
+        }
+    }
+    if (!failed.isEmpty()) {
+        return failed;
+    }
+
+    if (!saveFile()) {
+        failed["Error"] = QStringList() << "Write";
+    }
+    return failed;
+}
+
+void NTagReaderTaglib::fixMp4Key(const TagLib::PropertyMap &properties)
+{
+    // TagLib reads the musical key from the "initialkey" atom that iTunes,
+    // Mixed In Key and DJ software use, but writes it to "INITIALKEY", leaving
+    // the old value where those apps look. Keep it in "initialkey" only.
+    auto *mp4 = dynamic_cast<TagLib::MP4::File *>(NTaglib::_tagRef->file());
+    if (!mp4 || !mp4->tag()) {
+        return;
+    }
+    TagLib::MP4::Tag *tag = mp4->tag();
+    tag->removeItem("----:com.apple.iTunes:INITIALKEY");
+    if (properties.contains("INITIALKEY") && !properties["INITIALKEY"].isEmpty()) {
+        tag->setItem("----:com.apple.iTunes:initialkey",
+                     TagLib::MP4::Item(properties["INITIALKEY"]));
+    } else {
+        tag->removeItem("----:com.apple.iTunes:initialkey");
+    }
+}
+
+void NTagReaderTaglib::setId3v2Version(int version)
+{
+    m_id3v2Version = (version == 4) ? 4 : 3;
+}
+
+bool NTagReaderTaglib::saveFile()
+{
+    // Write ID3v2 in the chosen version (v2.3 by default: what DJ software,
+    // car stereos and Windows Explorer read most reliably), keep the other tag
+    // types as they are, and don't add an ID3v1 tag to files that have none.
+    TagLib::File *file = NTaglib::_tagRef->file();
+#if TAGLIB_MAJOR_VERSION >= 2
+    TagLib::ID3v2::Version version = (m_id3v2Version == 4) ? TagLib::ID3v2::v4
+                                                           : TagLib::ID3v2::v3;
+    // TagLib keeps an in-memory ID3v1 (MP3) or INFO (WAV) tag even when the
+    // file has none and fills it in too; only write the types already on disk.
+    if (auto *mpeg = dynamic_cast<TagLib::MPEG::File *>(file)) {
+        int tags = TagLib::MPEG::File::ID3v2;
+        if (mpeg->hasID3v1Tag()) {
+            tags |= TagLib::MPEG::File::ID3v1;
+        }
+        if (mpeg->hasAPETag()) {
+            tags |= TagLib::MPEG::File::APE;
+        }
+        return mpeg->save(tags, TagLib::File::StripNone, version, TagLib::File::DoNotDuplicate);
+    }
+    if (auto *wav = dynamic_cast<TagLib::RIFF::WAV::File *>(file)) {
+        int tags = TagLib::RIFF::WAV::File::ID3v2;
+        if (wav->hasInfoTag()) {
+            tags |= TagLib::RIFF::WAV::File::Info;
+        }
+        return wav->save(static_cast<TagLib::RIFF::WAV::File::TagTypes>(tags),
+                         TagLib::File::StripNone, version);
+    }
+    if (auto *aiff = dynamic_cast<TagLib::RIFF::AIFF::File *>(file)) {
+        return aiff->save(version);
+    }
+#else
+    if (auto *mpeg = dynamic_cast<TagLib::MPEG::File *>(file)) {
+        int tags = TagLib::MPEG::File::ID3v2;
+        if (mpeg->hasID3v1Tag()) {
+            tags |= TagLib::MPEG::File::ID3v1;
+        }
+        if (mpeg->hasAPETag()) {
+            tags |= TagLib::MPEG::File::APE;
+        }
+        return mpeg->save(tags, false, m_id3v2Version, false);
+    }
+    if (auto *wav = dynamic_cast<TagLib::RIFF::WAV::File *>(file)) {
+        int tags = TagLib::RIFF::WAV::File::ID3v2;
+        if (wav->hasInfoTag()) {
+            tags |= TagLib::RIFF::WAV::File::Info;
+        }
+        return wav->save(static_cast<TagLib::RIFF::WAV::File::TagTypes>(tags), false,
+                         m_id3v2Version);
+    }
+#endif
+    return file->save();
 }

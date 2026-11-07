@@ -157,7 +157,7 @@
       <p>For DJs who like to see what they're listening to: the waveform in colour, a live spectrum, and the BPM, key, label and genre from your tags, all on screen while the track plays.</p>
       <div class="buttons">
         <a class="btn" id="btn-mac" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Download for macOS (Apple Silicon M1+)</span><span>.dmg &darr;</span></a>
-        <a class="btn" id="btn-win" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Download for Windows</span><span>.zip &darr;</span></a>
+        <a class="btn" id="btn-win" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Download for Windows</span><span id="btn-win-kind">installer &darr;</span></a>
         <a class="btn ghost" href="https://github.com/khoshekh-dj/trackdeck"><span>Source code on GitHub</span><span>&rarr;</span></a>
       </div>
       <div class="facts mono soft"><a href="#download">Intel Mac?</a><span id="version">Latest release</span><span>Free</span><span>Open source</span><span>No account</span></div>
@@ -252,7 +252,7 @@
     <tbody>
       <tr>
         <td class="platform">macOS</td>
-        <td class="mono">Apple Silicon (M1+): macOS 14 Sonoma or newer<br>Intel: macOS 15 Sequoia or newer</td>
+        <td class="mono">macOS 15 Sequoia or newer<br>Apple Silicon (M1+) or Intel</td>
         <td><a class="btn" id="dl-mac" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Apple Silicon</span><span>&darr;</span></a>
           <a class="btn ghost" id="dl-mac-intel" href="https://github.com/khoshekh-dj/trackdeck/releases/latest" style="margin-top: 8px"><span>Intel</span><span>&darr;</span></a></td>
         <td><ol>
@@ -263,11 +263,13 @@
       </tr>
       <tr>
         <td class="platform">Windows</td>
-        <td class="mono">Windows 10 or 11<br>x64, portable</td>
-        <td><a class="btn" id="dl-win" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>.zip</span><span>&darr;</span></a></td>
+        <td class="mono">Windows 10 or 11<br>x64</td>
+        <td><a class="btn" id="dl-win-setup" href="https://github.com/khoshekh-dj/trackdeck/releases/latest"><span>Installer</span><span>&darr;</span></a>
+          <a class="btn ghost" id="dl-win" href="https://github.com/khoshekh-dj/trackdeck/releases/latest" style="margin-top: 8px"><span>Portable .zip</span><span>&darr;</span></a></td>
         <td><ol>
-          <li>Unzip anywhere and run <code>TrackDeck\TrackDeck.exe</code>.</li>
+          <li>Run the installer. It installs just for you, with no admin password, and adds TrackDeck to the Start menu. Uninstall it from <b>Settings &rarr; Apps</b>.</li>
           <li>If SmartScreen warns about an unrecognised app, choose <b>More info &rarr; Run anyway</b>.</li>
+          <li>Or use the portable .zip: unzip it anywhere and run <code>TrackDeck\TrackDeck.exe</code>. It keeps its settings in the same folder, so it can live on a USB stick.</li>
         </ol></td>
       </tr>
     </tbody>
@@ -291,7 +293,7 @@
   <div class="cols">
     <dl>
       <dt>Format</dt><dd>Desktop app, C++ / Qt</dd>
-      <dt>Platforms</dt><dd>macOS 14+ (Apple Silicon), macOS 15+ (Intel), Windows 10/11 (x64)</dd>
+      <dt>Platforms</dt><dd>macOS 15+ (Apple Silicon and Intel), Windows 10/11 (x64)</dd>
       <dt>Audio</dt><dd>GStreamer, FFmpeg decoders</dd>
       <dt>Tags</dt><dd>TagLib</dd>
       <dt>Tempo</dt><dd>aubio</dd>
@@ -338,6 +340,7 @@
           document.getElementById("catalogue").textContent =
             "Cat. TD-" + version.replace(/\./g, "") + " · " + (rel.published_at || "2026").slice(0, 4);
         }
+        var winSetup = null, winZip = null;
         (rel.assets || []).forEach(function (a) {
           var url = a.browser_download_url;
           if (/AppleSilicon\.dmg$/i.test(a.name)) {
@@ -348,10 +351,17 @@
             document.getElementById("dl-mac-intel").href = url;
           }
           if (/Windows.*\.zip$/i.test(a.name)) {
-            document.getElementById("btn-win").href = url;
+            winZip = url;
             document.getElementById("dl-win").href = url;
           }
+          if (/Windows.*Setup\.exe$/i.test(a.name)) {
+            winSetup = url;
+            document.getElementById("dl-win-setup").href = url;
+          }
         });
+        // the main button offers the installer, or the zip for releases without one
+        if (winSetup || winZip) document.getElementById("btn-win").href = winSetup || winZip;
+        if (!winSetup && winZip) document.getElementById("btn-win-kind").innerHTML = ".zip &darr;";
       })
       .catch(function () {});
   })();

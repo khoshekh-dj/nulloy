@@ -129,6 +129,7 @@ NSettings::NSettings(QObject *parent)
     initValue("AutoCheckUpdates", true);
     initValue("DisplayLogDialog", true);
     initValue("DisplayTagEditorConfirmDialog", true);
+    initValue("TagEditorID3v2Version", 3); // ID3v2.3: the most widely read by DJ software
     initValue("DisplayMoveToTrashConfirmDialog", true);
     initValue("LastDirectory", QStandardPaths::standardLocations(QStandardPaths::MusicLocation));
     initValue("ScrollToItem", true);

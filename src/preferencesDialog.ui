@@ -1192,6 +1192,13 @@ padding: 5px;</string>
              </widget>
             </item>
             <item>
+             <widget class="QLabel" name="id3v2VersionLabel">
+              <property name="text">
+               <string>MP3 tags:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QLabel" name="tooltipTrackInfoLabel">
               <property name="text">
                <string>Tooltip:</string>
@@ -1215,6 +1222,13 @@ padding: 5px;</string>
                 <width>200</width>
                 <height>0</height>
                </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="id3v2VersionComboBox">
+              <property name="toolTip">
+               <string>The ID3 tag version the Tag Editor writes to MP3, WAV and AIFF files</string>
               </property>
              </widget>
             </item>

@@ -38,7 +38,22 @@ public:
 
     virtual bool isWriteSupported() const { return false; }
     virtual QMap<QString, QStringList> getTags() const { return QMap<QString, QStringList>(); }
-    virtual QMap<QString, QStringList> setTags(const QMap<QString, QStringList> &) {}
+    virtual QMap<QString, QStringList> setTags(const QMap<QString, QStringList> &)
+    {
+        return QMap<QString, QStringList>();
+    }
+
+    // Changes only the given fields of the current file (an empty list removes
+    // the field) and keeps every other tag, picture and frame as it is.
+    // Returns the fields that couldn't be written, or "Error" => "Write" if
+    // saving the file failed; empty on success.
+    virtual QMap<QString, QStringList> updateTags(const QMap<QString, QStringList> &changes)
+    {
+        return changes;
+    }
+
+    // ID3v2 version written to MP3, WAV and AIFF files: 3 or 4
+    virtual void setId3v2Version(int version) { Q_UNUSED(version); }
 };
 
 Q_DECLARE_INTERFACE(NTagReaderInterface, TAGREADER_INTERFACE)

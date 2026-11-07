@@ -21,7 +21,8 @@ jobs:
       fail-fast: false # one chip's failure shouldn't cancel the other's build
       matrix:
         include:
-          - runner: macos-14
+          # GitHub retired its macOS 14 runners, so this .dmg also needs macOS 15
+          - runner: macos-15
             title: Apple Silicon
             label: AppleSilicon
           # Intel build; the .dmg needs at least the runner's macOS (15)

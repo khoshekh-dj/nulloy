@@ -8,12 +8,12 @@
 #   macOS:   test-formats.sh dist/TrackDeck/TrackDeck.app Contents/MacOS/TrackDeck
 #   Windows: test-formats.sh dist/TrackDeck-windows/TrackDeck TrackDeck.exe
 # Env: EXPECTED_MISSING="file1 file2"  formats known not to be supported here
-#      PLAY_SECONDS=6                   how long to let each file play
+#      PLAY_TIMEOUT=30                  how long to wait for a file to start playing
 set -uo pipefail
 APP=${1:?packaged app dir}
 BIN_REL=${2:?binary path inside the app dir}
 WORK=${3:-$(mktemp -d)}
-PLAY_SECONDS=${PLAY_SECONDS:-6}
+PLAY_TIMEOUT=${PLAY_TIMEOUT:-30}
 EXPECTED_MISSING=" ${EXPECTED_MISSING:-} "
 
 rm -rf "$WORK"
@@ -51,18 +51,42 @@ done
 
 native_path() { command -v cygpath >/dev/null && cygpath -w "$1" || echo "$1"; }
 
+# decoders matching $2 that the GStreamer log $1 shows were created
+decoders_used() {
+  grep -o 'creating element "[a-z0-9_]*"' "$1" 2>/dev/null | sed 's/creating element "//; s/"//' \
+    | grep -E -x "$2" | sort -u | tr '\n' ',' | sed 's/,$//'
+}
+
+# Launch the app on a file and wait until one of the expected decoders shows up
+# in the GStreamer log, or until PLAY_TIMEOUT. Polling instead of a fixed wait
+# keeps a slow start (a fresh CI runner scanning newly unpacked DLLs can take
+# several seconds) from failing the test, and makes passing files quick.
+play_file() { # file log expect
+  rm -f "$BIN_DIR"/*.cfg "$BIN_DIR"/*.m3u "$BIN_DIR"/*.peaks "$2"
+  printf '[General]\nSingleInstance=false\nAutoCheckUpdates=false\n' > "$CFG"
+  GST_DEBUG="GST_ELEMENT_FACTORY:4" GST_DEBUG_NO_COLOR=1 GST_DEBUG_FILE="$(native_path "$2")" \
+    "$BIN" "$(native_path "$1")" >/dev/null 2>&1 &
+  local pid=$! waited=0
+  while [ "$waited" -lt $((PLAY_TIMEOUT * 2)) ]; do
+    [ -n "$(decoders_used "$2" "$3")" ] && break
+    kill -0 "$pid" 2>/dev/null || break # the app quit by itself
+    sleep 0.5
+    waited=$((waited + 1))
+  done
+  sleep 0.5 # let the log settle before the app is stopped
+  kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+}
+
 # --- warm-up: the first launch of a fresh copy builds GStreamer's plugin
-# registry (kept next to the app), which can take longer than PLAY_SECONDS ----
-rm -f "$BIN_DIR"/*.cfg
-printf '[General]\nSingleInstance=false\nAutoCheckUpdates=false\n' > "$CFG"
-"$BIN" >/dev/null 2>&1 &
-pid=$!
-for _ in $(seq 1 90); do
-  ls "$BIN_DIR"/gstreamer-1.0.registry.bin >/dev/null 2>&1 && break
-  sleep 1
-done
-sleep 2
-kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+# registry (kept next to the app) and the first playback loads the decoder and
+# audio output libraries, both of which can be slow on a fresh machine. Play
+# one file all the way to its decoder before the real tests. ------------------
+warm=${CASES[0]}; warm_name=${warm%%|*}; warm_rest=${warm#*|}
+if [ -f "$WORK/files/$warm_name" ]; then
+  start=$(date +%s)
+  PLAY_TIMEOUT=$((PLAY_TIMEOUT * 3)) play_file "$WORK/files/$warm_name" "$WORK/logs/warm-up.log" "${warm_rest#*|}"
+  echo "Warm-up took $(( $(date +%s) - start ))s"
+fi
 [ -f "$BIN_DIR/gstreamer-1.0.registry.bin" ] && echo "GStreamer registry ready" \
   || echo "warning: GStreamer registry not found after warm-up"
 
@@ -74,19 +98,12 @@ for c in "${CASES[@]}"; do
   file="$WORK/files/$name"
   [ -f "$file" ] || { printf "%-14s %-8s %s\n" "$name" "SKIP" "(not generated)"; continue; }
   log="$WORK/logs/$name.log"
-  rm -f "$BIN_DIR"/*.cfg "$BIN_DIR"/*.m3u "$BIN_DIR"/*.peaks
-  printf '[General]\nSingleInstance=false\nAutoCheckUpdates=false\n' > "$CFG"
-
-  GST_DEBUG="GST_ELEMENT_FACTORY:4" GST_DEBUG_NO_COLOR=1 GST_DEBUG_FILE="$(native_path "$log")" \
-    "$BIN" "$(native_path "$file")" >/dev/null 2>&1 &
-  pid=$!
-  sleep "$PLAY_SECONDS"
-  kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
-
-  used=$(grep -o 'creating element "[a-z0-9_]*"' "$log" 2>/dev/null | sed 's/creating element "//; s/"//' \
-         | grep -E -x "$expect" | sort -u | tr '\n' ',' | sed 's/,$//')
+  start=$(date +%s)
+  play_file "$file" "$log" "$expect"
+  secs=$(( $(date +%s) - start ))
+  used=$(decoders_used "$log" "$expect")
   if [ -n "$used" ]; then
-    result=PASS
+    result=PASS; used="$used (${secs}s)"
   elif [[ "$EXPECTED_MISSING" == *" $name "* ]]; then
     result=KNOWN; used="(expected: not supported on this platform)"
   else

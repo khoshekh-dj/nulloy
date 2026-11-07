@@ -22,6 +22,7 @@
 #include <fileref.h>
 #include <tag.h>
 #include <tmap.h>
+#include <tpropertymap.h>
 
 class QString;
 
@@ -32,6 +33,9 @@ class NTagReaderTaglib : public NTagReaderInterface, public NPlugin
 
 private:
     bool m_isValid;
+    int m_id3v2Version;
+    bool saveFile();
+    void fixMp4Key(const TagLib::PropertyMap &properties);
     QTextCodec *m_codec;
     QTextCodec *m_utf8Codec;
 
@@ -54,6 +58,8 @@ public:
     bool isWriteSupported() const { return true; }
     QMap<QString, QStringList> getTags() const;
     QMap<QString, QStringList> setTags(const QMap<QString, QStringList> &tags);
+    QMap<QString, QStringList> updateTags(const QMap<QString, QStringList> &changes);
+    void setId3v2Version(int version);
 
     QMap<QString, QStringList>
     TMapToQMap(const TagLib::Map<TagLib::String, TagLib::StringList> &tmap) const;

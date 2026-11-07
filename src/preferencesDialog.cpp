@@ -295,6 +295,8 @@ NPreferencesDialog::NPreferencesDialog(NPlayer *player, QWidget *parent) : QDial
         }
         ++i;
     }
+    ui.id3v2VersionComboBox->addItem(tr("ID3v2.3 (most compatible)"), 3);
+    ui.id3v2VersionComboBox->addItem(tr("ID3v2.4"), 4);
 }
 
 void NPreferencesDialog::showEvent(QShowEvent *event)
@@ -691,6 +693,12 @@ void NPreferencesDialog::loadSettings()
     }
     // << playlist columns
 
+    // ID3v2 version >>
+    ui.id3v2VersionComboBox->setCurrentIndex(qMax(
+        0, ui.id3v2VersionComboBox->findData(
+               NSettings::instance()->value("TagEditorID3v2Version").toInt())));
+    // << ID3v2 version
+
     // track info encoding >>
     QString encoding = NSettings::instance()->value("EncodingTrackInfo").toString();
     for (int i = 0; i < ui.encodingTrackInfoComboBox->count(); ++i) {
@@ -876,6 +884,11 @@ void NPreferencesDialog::saveSettings()
                                     ui.encodingTrackInfoComboBox->itemText(
                                         ui.encodingTrackInfoComboBox->currentIndex()));
     // << track info encoding
+
+    // ID3v2 version >>
+    NSettings::instance()->setValue("TagEditorID3v2Version",
+                                    ui.id3v2VersionComboBox->currentData().toInt());
+    // << ID3v2 version
 
     // tooltip offset >>
     int tooltipOffsetX = ui.tooltipOffsetXSpinBox->value();

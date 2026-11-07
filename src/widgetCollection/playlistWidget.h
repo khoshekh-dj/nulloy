@@ -119,6 +119,7 @@ public:
     QList<NPlaylistDataItem> selectedDataItems() const; // in playlist order
     NPlaylistWidgetItem *itemAtRow(int row) const;
     void refreshItemsForFile(const QString &file);
+    void refreshItemsForFiles(const QStringList &files);
     NPlaylistWidgetItem *playingItem() const;
     int playingRow() const;
     Q_INVOKABLE bool hasPlayingItem() const;
@@ -193,6 +194,14 @@ private:
     bool needsFetch(const QString &file);
     void startFetches();
     void fileFetched(const QString &file);
+
+    // Files that weren't there when their row was read (e.g. on an unplugged
+    // USB drive). They're checked again every few seconds and the rows are
+    // re-read once the files appear.
+    QSet<QString> m_missingFiles;
+    QTimer *m_missingFilesTimer;
+    void checkMissingFiles();
+    void setPlaceholderData(NPlaylistWidgetItem *item, const QString &file);
 
     QPoint m_pressPos;     // where the left button went down
     bool m_pressOnItem;    // ...and whether that was on a track

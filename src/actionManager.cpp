@@ -535,14 +535,14 @@ NActionManager::NActionManager(NPlayer *player) : QObject(player)
         NAction *tagEditorAction = new NAction(QIcon::fromTheme("edit", winIcons.value(289)),
                                                tr("Tag Editor"), player);
         tagEditorAction->setObjectName("TagEditorAction");
-        tagEditorAction->setStatusTip(tr("Open tag editor for selected file"));
+        tagEditorAction->setStatusTip(tr("Edit the tags of the selected tracks"));
         tagEditorAction->setCustomizable(true);
         connect(tagEditorAction, &NAction::triggered, [player]() {
             QStringList files = player->playlistWidget()->selectedFiles();
             if (files.isEmpty()) {
                 return;
             }
-            player->showTagEditor(files.first());
+            player->showTagEditor(files);
         });
         m_playlistContextMenu->addAction(tagEditorAction);
     }
