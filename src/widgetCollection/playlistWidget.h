@@ -195,6 +195,14 @@ private:
     void startFetches();
     void fileFetched(const QString &file);
 
+    // Files that weren't there when their row was read (e.g. on an unplugged
+    // USB drive). They're checked again every few seconds and the rows are
+    // re-read once the files appear.
+    QSet<QString> m_missingFiles;
+    QTimer *m_missingFilesTimer;
+    void checkMissingFiles();
+    void setPlaceholderData(NPlaylistWidgetItem *item, const QString &file);
+
     QPoint m_pressPos;     // where the left button went down
     bool m_pressOnItem;    // ...and whether that was on a track
     bool m_fileDrop;

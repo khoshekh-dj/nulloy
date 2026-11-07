@@ -99,6 +99,10 @@ NPlaylistWidget::NPlaylistWidget(QWidget *parent) : QListWidget(parent)
     connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this,
             SLOT(startProcessVisibleItemsTimer()));
 
+    m_missingFilesTimer = new QTimer(this);
+    m_missingFilesTimer->setInterval(3000);
+    connect(m_missingFilesTimer, &QTimer::timeout, this, &NPlaylistWidget::checkMissingFiles);
+
     // columns mode: a standalone header above the viewport, rows are drawn
     // column by column by NPlaylistWidgetItemDelegate
     m_columnsMode = false;
@@ -496,8 +500,69 @@ void NPlaylistWidget::resetPlayingItem()
     m_playingItem = NULL;
 }
 
+void NPlaylistWidget::setPlaceholderData(NPlaylistWidgetItem *item, const QString &file)
+{
+    if (item->text().isEmpty()) {
+        item->setText(QFileInfo(file).fileName());
+    }
+    if (m_columnsMode && item->data(N::ColumnsRole).toStringList().isEmpty()) {
+        QStringList columns;
+        for (int i = 0; i < m_columnFormats.size(); ++i) {
+            columns << QString();
+        }
+        int titleColumn = qMax(0, m_columnFormats.indexOf(QRegExp(".*%t.*")));
+        if (!columns.isEmpty()) {
+            columns[titleColumn] = QFileInfo(file).fileName();
+        }
+        item->setData(N::ColumnsRole, columns);
+    }
+}
+
+void NPlaylistWidget::checkMissingFiles()
+{
+    // check each folder once; while a drive is unplugged its folders don't
+    // exist, so this is a handful of quick checks however long the playlist is
+    QMap<QString, QStringList> byDir;
+    for (const QString &file : m_missingFiles) {
+        byDir[QFileInfo(file).path()] << file;
+    }
+    QStringList found;
+    for (auto it = byDir.constBegin(); it != byDir.constEnd(); ++it) {
+#ifdef Q_OS_WIN
+        if (it.key().startsWith("//") || it.key().startsWith("\\\\")) {
+            continue; // an offline network share can take seconds to answer
+        }
+#endif
+        if (!QFileInfo::exists(it.key())) {
+            continue;
+        }
+        for (const QString &file : it.value()) {
+            if (QFileInfo::exists(file)) {
+                found << file;
+            }
+        }
+    }
+    if (found.isEmpty()) {
+        return;
+    }
+
+    for (const QString &file : found) {
+        m_missingFiles.remove(file);
+    }
+    if (m_missingFiles.isEmpty()) {
+        m_missingFilesTimer->stop();
+    }
+    refreshItemsForFiles(found);
+    calculateDuration();
+    emit itemsChanged();
+}
+
 bool NPlaylistWidget::refreshItemData(NPlaylistWidgetItem *item, QString titleFormat, bool force)
 {
+    if (!force && m_missingFiles.contains(item->data(N::PathRole).toString())) {
+        return false; // re-read by checkMissingFiles() once the file is back
+    }
+
     // column texts are not persisted; refresh rows that don't have them yet
     bool columnsMissing = m_columnsMode && item->data(N::ColumnsRole).toStringList().size() !=
                                                m_columnFormats.size();
@@ -510,22 +575,21 @@ bool NPlaylistWidget::refreshItemData(NPlaylistWidgetItem *item, QString titleFo
     if (needsFetch(file)) {
         // show the file name until the file is available; the row is
         // refreshed when the background fetch finishes
-        if (item->text().isEmpty()) {
-            item->setText(QFileInfo(file).fileName());
-        }
-        if (m_columnsMode && item->data(N::ColumnsRole).toStringList().isEmpty()) {
-            QStringList columns;
-            for (int i = 0; i < m_columnFormats.size(); ++i) {
-                columns << QString();
-            }
-            int titleColumn = qMax(0, m_columnFormats.indexOf(QRegExp(".*%t.*")));
-            if (!columns.isEmpty()) {
-                columns[titleColumn] = QFileInfo(file).fileName();
-            }
-            item->setData(N::ColumnsRole, columns);
+        setPlaceholderData(item, file);
+        return false;
+    }
+
+    if (!file.isEmpty() && !QFileInfo::exists(file)) {
+        // not there right now (unplugged drive, renamed file): show the file
+        // name and read the tags once the file turns up
+        setPlaceholderData(item, file);
+        m_missingFiles.insert(file);
+        if (!m_missingFilesTimer->isActive()) {
+            m_missingFilesTimer->start();
         }
         return false;
     }
+    m_missingFiles.remove(file);
 
     QString title;
     if (m_trackInfoReader) {
