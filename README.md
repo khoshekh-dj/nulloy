@@ -18,7 +18,7 @@ A dark design with large cover art, the title, artist and album, a BPM · kbps �
 
 To switch skins, use Preferences → General → Skin, then restart TrackDeck.
 
-![TrackDeck 1.3.0 in the Modern skin: album art as the background, the curve visualiser, the RGB waveform and the playlist columns](docs/screenshots/main-window.jpg)
+![TrackDeck 1.3.1 in the Modern skin: album art as the background, the curve visualiser, the RGB waveform and the playlist columns](docs/screenshots/main-window.jpg)
 
 ![TrackDeck in the teal Khoshekh skin with the mirrored visualiser](docs/assets/khoshekh.jpg)
 
@@ -121,8 +121,8 @@ The script copies Qt, an audio-only set of GStreamer plugins and every DLL they 
 To build the installer from that folder, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run, from a Windows command prompt:
 
 ```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.3.0 scripts\windows-installer.iss
-:: -> dist\TrackDeck-1.3.0-Windows-x64-Setup.exe
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.3.1 scripts\windows-installer.iss
+:: -> dist\TrackDeck-1.3.1-Windows-x64-Setup.exe
 ```
 
 Release builds make both on GitHub Actions; see `.github/workflows/windows.yml`.
