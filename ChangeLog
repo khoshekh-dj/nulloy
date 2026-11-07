@@ -2,6 +2,7 @@
 - New: Retro skin: bevelled grey panels, push-in buttons and a black display with green text, a tribute to the desktop players of the late '90s
 - Fix: .aif and .aifc files show in Add Files and are picked up when adding a folder (settings from older versions get them added)
 - Fix: the tag editor says "4 tracks" instead of "4 track(s)"
+- Fix: skin colours and fonts no longer leak into the tag editor (with the Retro skin its form area turned grey)
 - Website: a Skins page showing all six skins; README has 1.3.0 screenshots
 
 * 1.3.0, Sat Nov 7 2026
