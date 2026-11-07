@@ -7,6 +7,7 @@
 - Fix: saving tags only changes the fields you edited; Serato and Traktor data, artwork and ratings are kept, and no ID3v1 or WAV INFO tags are added
 - Fix: tracks on a drive that wasn't plugged in when TrackDeck started now fill in their details once the drive is connected
 - Fix: the playlist updates straight after saving tags
+- Change: the Apple Silicon download now needs macOS 15 Sequoia or newer (GitHub retired the macOS 14 build machines); older Macs can build with scripts/build-mac-macports.sh
 - Website: Windows installer download; main macOS button says Apple Silicon M1+
 - Build: the format test waits for playback to start instead of a fixed 6 s (it sometimes failed on a slow first launch on Windows)
 
