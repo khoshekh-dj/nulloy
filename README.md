@@ -18,7 +18,7 @@ A dark design with large cover art, the title, artist and album, a BPM · kbps �
 
 To switch skins, use Preferences → General → Skin, then restart TrackDeck.
 
-![TrackDeck 1.3.1 in the Modern skin: album art as the background, the curve visualiser, the RGB waveform and the playlist columns](docs/screenshots/main-window.jpg)
+![TrackDeck in the Modern skin: album art as the background, the curve visualiser, the RGB waveform and the playlist columns](docs/screenshots/main-window.jpg)
 
 ![TrackDeck in the teal Khoshekh skin with the mirrored visualiser](docs/assets/khoshekh.jpg)
 
