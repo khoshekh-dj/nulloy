@@ -18,7 +18,7 @@ A dark design with large cover art, the title, artist and album, a BPM · kbps �
 
 To switch skins, use Preferences → General → Skin, then restart TrackDeck.
 
-![TrackDeck in the Modern skin: cover art, the live spectrum visualiser, the RGB waveform and the playlist columns](docs/assets/hero.jpg)
+![TrackDeck 1.3.0 in the Modern skin: album art as the background, the curve visualiser, the RGB waveform and the playlist columns](docs/screenshots/main-window.jpg)
 
 ![TrackDeck in the teal Khoshekh skin with the mirrored visualiser](docs/assets/khoshekh.jpg)
 
@@ -49,6 +49,8 @@ The playlist can show columns from your tags: Artist, Title, Album, Genre, Key, 
 
 ![Playlist columns with Genre, BPM, Key and Label, sorted by key](docs/assets/keysort.jpg)
 
+<img src="docs/screenshots/preferences.jpg" width="420" alt="Preferences, Track Information tab: columns to show, BPM detection, waveform colours and accent colour">
+
 ### Playlists
 Save the current list as a playlist (**Save Playlist As…**, Shift+Cmd+S), open one (**Open Playlist…**, Cmd+L, or **Open Recent Playlist**), and right-click tracks to **Add to Playlist ▸** an existing playlist or a new one, without leaving the list you're on. Playlists are `.m3u8` files in `~/Music/TrackDeck Playlists` (configurable in Preferences → General), so rekordbox, Serato, Engine DJ and most players can import them. When opening a playlist, TrackDeck asks whether to replace the current list or add to it; Preferences sets a default. **Save Playlist** (Cmd+S) updates the playlist you opened.
 
@@ -56,6 +58,8 @@ Save the current list as a playlist (**Save Playlist As…**, Shift+Cmd+S), open
 Select one or more tracks, right-click and choose **Tag Editor** (F4). For one track you can edit every tag, including the raw ones. For several tracks, type into a field such as Genre, Label or Album artist and it changes on all of them. Fields marked *(various)* differ between the tracks and stay as they are unless you type a new value. Titles and track numbers are edited one track at a time.
 
 The fields are Title, Artist, Album, Album artist, Remixer, Date, Genre, BPM, Key, Label, Comment, Composer, Copyright, URL and Encoded by. Each format gets its own tag standard: ID3v2 for MP3, AIFF and WAV; Vorbis comments for FLAC, Ogg and Opus; and iTunes atoms for M4A. MP3 tags are written as **ID3v2.3**, the version DJ software, CDJs and Windows read most reliably; Preferences → Track Information can switch to ID3v2.4. Saving only changes the tags you edited. Cover art and the data DJ software keeps in the file are left as they are, including Serato cue points and Traktor analysis. Tracks that are still in iCloud Drive or OneDrive and not downloaded are left out, so the app doesn't freeze while they download.
+
+![The tag editor with 4 tracks selected: shared fields filled in, differing ones marked (various)](docs/screenshots/tag-editor.jpg)
 
 ### Also
 - **Formats:** MP3, AAC/M4A, Apple Lossless (ALAC), FLAC, WAV, AIFF, Ogg Vorbis, Opus, WMA, AC3 and more. WavPack works on Windows.
