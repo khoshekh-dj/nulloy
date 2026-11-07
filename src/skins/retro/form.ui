@@ -14,7 +14,9 @@
    <string notr="true">/* TrackDeck "Retro" skin: an original late-90s desktop player look:
    bevelled grey panels, a black LCD display with green text */
 
-* {
+/* monospaced text in the player and its menus only, not in dialogs such
+   as the tag editor or Preferences */
+#borderWidget, #borderWidget *, QMenu, QToolTip {
 	font-family: "Menlo", "Consolas", "DejaVu Sans Mono", monospace;
 }
 

@@ -49,9 +49,9 @@ NTagEditorDialog::NTagEditorDialog(const QStringList &files, QWidget *parent) : 
 {
     ui.setupUi(this);
     // give the right-hand fields (Album artist, Label...) room as well
-    ui.splitter->setStretchFactor(0, 3);
-    ui.splitter->setStretchFactor(1, 2);
-    ui.splitter->setSizes(QList<int>() << 450 << 300);
+    ui.tagSplitter->setStretchFactor(0, 3);
+    ui.tagSplitter->setStretchFactor(1, 2);
+    ui.tagSplitter->setSizes(QList<int>() << 450 << 300);
 
     m_valid = false;
     m_hasChanges = false;
